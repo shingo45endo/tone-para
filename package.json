@@ -1,0 +1,27 @@
+{
+  "name": "tone-para",
+  "version": "0.1.0",
+  "description": "",
+  "main": "index.js",
+  "module": "main.js",
+  "scripts": {
+    "lint": "eslint *.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/shingo45endo/tone-para.git"
+  },
+  "author": "shingo45endo",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/shingo45endo/tone-para/issues"
+  },
+  "homepage": "https://github.com/shingo45endo/tone-para#readme",
+  "dependencies": {
+    "esm": "^3.2.25",
+    "yargs": "^13.3.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0"
+  }
+}

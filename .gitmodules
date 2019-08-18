@@ -1,0 +1,3 @@
+[submodule "smf-parser"]
+	path = smf-parser
+	url = git@github.com:shingo45endo/smf-parser.git
