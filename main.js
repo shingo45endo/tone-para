@@ -8,6 +8,7 @@ import yargs from 'yargs';
 import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc.js';
+import {binToJsonForMU} from './bin2json_mu.js';
 
 console.assert = assert;
 
@@ -79,9 +80,28 @@ try {
 			break;
 
 		case 'mu2000':
+			{
+				const json = binToJsonForMU(bytes, {
+					tones: [0x200ee0, 0x23cece],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
 		case 'mu1000':
+			{
+				const json = binToJsonForMU(bytes, {
+					tones: [0x16fed8, 0x1abec6],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
 		case 'mu128':
-			console.warn('Not implemented yet.');
+			{
+				const json = binToJsonForMU(bytes, {
+					tones: [0x108858, 0x1418b2],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
 			break;
 
 		case 'ns5r':
