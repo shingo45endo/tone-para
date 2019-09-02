@@ -82,7 +82,27 @@ try {
 		case 'mu2000':
 			{
 				const json = binToJsonForMU(bytes, {
-					tones: [0x200ee0, 0x23cece],
+					tones:               [0x200ee0, 0x23cece],
+//					tableAddr:           [0x267f50, 0x283950],
+					drumParams:          [0x283dd0, 0x28e64e],
+					tableDrumNotes:      [0x28e64e, 0x29224e],
+					tableDrumParamAddr:  [0x292250, 0x292340],
+					tableDrumParamXG:    [0x292340, 0x292440],
+					tableDrumParamSFX:   [0x292440, 0x2924c0],
+					tableDrumParamGS:    [0x2924c0, 0x292540],
+					tableDrumParamGM2:   [0x292540, 0x292640],
+					drumNoteNamesXG:     [0x292740, 0x299dc0],
+					drumKitNamesXG:      [0x299dc0, 0x299f4c],
+					tableDrumKitNameXG:  [0x299f4c, 0x29a04c],
+					drumNoteNamesSFX:    [0x29a04c, 0x29bdec],
+					drumKitNamesSFX:     [0x29bdec, 0x29be58],
+					tableDrumKitNameSFX: [0x29be58, 0x29bed8],
+					drumNoteNamesGS:     [0x29bed8, 0x29ddc8],
+					drumKitNamesGS:      [0x29ddc8, 0x29de4c],
+					tableDrumKitNameGS:  [0x29de4c, 0x29decc],
+					drumNoteNamesGM2:    [0x29decc, 0x29fccc],
+					drumKitNamesGM2:     [0x29fccc, 0x29fd50],
+					tableDrumKitNameGM2: [0x29fd50, 0x29fe50],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -90,7 +110,27 @@ try {
 		case 'mu1000':
 			{
 				const json = binToJsonForMU(bytes, {
-					tones: [0x16fed8, 0x1abec6],
+					tones:               [0x16fed8, 0x1abec6],
+//					tableAddr:           [0x1abec8, 0x1c78c8],
+					drumParams:          [0x1c7d48, 0x1d25c6],
+					tableDrumNotes:      [0x1d25c6, 0x1d61c6],
+					tableDrumParamAddr:  [0x1d61c8, 0x1d62b8],
+					tableDrumParamXG:    [0x1d62b8, 0x1d63b8],
+					tableDrumParamSFX:   [0x1d63b8, 0x1d6438],
+					tableDrumParamGS:    [0x1d6438, 0x1d64b8],
+					tableDrumParamGM2:   [0x1d64b8, 0x1d65b8],
+					drumNoteNamesXG:     [0x1d66b8, 0x1ddd38],
+					drumKitNamesXG:      [0x1ddd38, 0x1ddec4],
+					tableDrumKitNameXG:  [0x1ddec4, 0x1ddfc4],
+					drumNoteNamesSFX:    [0x1ddfc4, 0x1dfd64],
+					drumKitNamesSFX:     [0x1dfd64, 0x1dfdd0],
+					tableDrumKitNameSFX: [0x1dfdd0, 0x1dfe50],
+					drumNoteNamesGS:     [0x1dfe50, 0x1e1d40],
+					drumKitNamesGS:      [0x1e1d40, 0x1e1dc4],
+					tableDrumKitNameGS:  [0x1e1dc4, 0x1e1e44],
+					drumNoteNamesGM2:    [0x1e1e44, 0x1e3c44],
+					drumKitNamesGM2:     [0x1e3c44, 0x1e3cc8],
+					tableDrumKitNameGM2: [0x1e3cc8, 0x1e3dc8],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -98,7 +138,27 @@ try {
 		case 'mu128':
 			{
 				const json = binToJsonForMU(bytes, {
-					tones: [0x108858, 0x1418b2],
+					tones:               [0x108858, 0x1418b2],
+//					tableAddr:           [0x1418b4, 0x15c6b4],
+					drumParams:          [0x15cb34, 0x166836],
+					tableDrumNotes:      [0x166836, 0x16a236],
+					tableDrumParamAddr:  [0x16a238, 0x16a320],
+					tableDrumParamXG:    [0x16a320, 0x16a420],
+					tableDrumParamSFX:   [0x16a420, 0x16a4a0],
+					tableDrumParamGS:    [0x16a4a0, 0x16a520],
+					tableDrumParamGM2:   [0x16a520, 0x16a620],
+					drumNoteNamesXG:     [0x16a720, 0x171638],
+					drumKitNamesXG:      [0x171638, 0x1717ac],
+					tableDrumKitNameXG:  [0x1717ac, 0x1718ac],
+					drumNoteNamesSFX:    [0x1718ac, 0x17364c],
+					drumKitNamesSFX:     [0x17364c, 0x1736b8],
+					tableDrumKitNameSFX: [0x1736b8, 0x173738],
+					drumNoteNamesGS:     [0x173738, 0x175628],
+					drumKitNamesGS:      [0x175628, 0x1756ac],
+					tableDrumKitNameGS:  [0x1756ac, 0x17572c],
+					drumNoteNamesGM2:    [0x17572c, 0x17752c],
+					drumKitNamesGM2:     [0x17752c, 0x1775b0],
+					tableDrumKitNameGM2: [0x1775b0, 0x1776b0],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}

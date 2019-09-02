@@ -6,7 +6,9 @@ export function binToJsonForMU(bytes, regions) {
 	if (regions.tones) {
 		json.tones = makeTones(bytes.slice(...regions.tones));
 	}
-//	json.drumSets = makeDrumSets(bytes, regions);
+	if (regions.drumParams && regions.tableDrumParamAddr) {
+		json.drumSets = makeDrumSets(bytes, regions);
+	}
 
 	return json;
 }
@@ -52,13 +54,77 @@ function makeTones(bytes) {
 }
 
 function makeDrumSets(bytes, regions) {
-	const json = {};
-
 	const drumParamPackets = splitArrayByN(bytes.slice(...regions.drumParams), 42);
-	for (let drumParamNo = 0; drumParamNo < drumParamPackets.length; drumParamNo++) {
-		const drumParamBytes = drumParamPackets[drumParamNo];
-//		const drum
+	const drumSetsAddrs = splitArrayByN(bytes.slice(...regions.tableDrumParamAddr), 4);
+
+	const drumSets = [];
+	for (let drumSetNo = 0; drumSetNo < drumSetsAddrs.length; drumSetNo++) {
+		const addr = drumSetsAddrs[drumSetNo].reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+		const offsets = splitArrayByN(bytes.slice(addr, addr + 2 * 128), 2);
+
+		const drumSet = {
+			drumSetNo,
+			notes: {},
+		};
+		for (let noteNo = 0; noteNo < 128; noteNo++) {
+			const offset = (offsets[noteNo][0] << 8) | offsets[noteNo][1];
+			if (offset === 0xffff) {
+				continue;
+			}
+
+			const index = offset / 42;
+			console.assert(Number.isInteger(index));
+			const note = {
+				bytes: [...drumParamPackets[index]],
+			};
+			drumSet.notes[noteNo] = note;
+		}
+
+		drumSets.push(drumSet);
 	}
 
-	return json;
+	let drumKitNameAddrs = [];
+	for (const kind of ['XG', 'SFX', 'GS', 'GM2']) {
+		const regionsTableDrumParam   = regions[`tableDrumParam${kind}`];
+		const regionsDrumKitNames     = regions[`drumKitNames${kind}`];
+		const regionsDrumNoteNames    = regions[`drumNoteNames${kind}`];
+		const regionsTableDrumKitName = regions[`tableDrumKitName${kind}`];
+		if (!regionsTableDrumParam || !regionsDrumKitNames || !regionsDrumNoteNames || !regionsTableDrumKitName) {
+			continue;
+		}
+
+		const drumKitNamePackets = splitArrayByN(bytes.slice(...regionsDrumKitNames), 12);
+		drumKitNameAddrs.push(...drumKitNamePackets.map((e) => e.slice(8).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0)), regionsDrumKitNames[1]);
+		drumKitNameAddrs = [...new Set(drumKitNameAddrs)].sort((a, b) => a - b);
+
+		const tableDrumParam   = bytes.slice(...regionsTableDrumParam);
+		const tableDrumKitName = bytes.slice(...regionsTableDrumKitName);
+		console.assert(tableDrumParam.length === tableDrumKitName.length);
+		for (let i = 0; i < tableDrumKitName.length; i++) {
+			const indexName  = tableDrumKitName[i];
+			const indexParam = tableDrumParam[i];
+			const drumSet = drumSets[indexParam];
+			if (drumSet.name) {
+				continue;
+			}
+
+			const drumSetNamePacket = drumKitNamePackets[indexName];
+			const name = String.fromCharCode(...drumSetNamePacket.slice(0, 8));
+			const addr = drumSetNamePacket.slice(8).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+			const index = drumKitNameAddrs.indexOf(addr);
+			console.assert(index >= 0 && index < drumKitNameAddrs.length - 1);
+
+			const drumNoteNames = splitArrayByN(bytes.slice(drumKitNameAddrs[index], drumKitNameAddrs[index + 1]), 12).map((e) => String.fromCharCode(...e));
+			for (const key of Object.keys(drumSet.notes)) {
+				if (!drumSet.notes[key].name) {
+					const offset = {XG: 13, SFX: 13, GS: 25, GM2: 25}[kind];
+					drumSet.notes[key].name = drumNoteNames[Number(key) - offset];
+				}
+			}
+
+			drumSet.name = name;
+		}
+	}
+
+	return drumSets;
 }
