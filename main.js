@@ -9,6 +9,7 @@ import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc.js';
 import {binToJsonForMU} from './bin2json_mu.js';
+import {binToJsonForNS5R} from './bin2json_ns5r.js';
 
 console.assert = assert;
 
@@ -165,7 +166,15 @@ try {
 			break;
 
 		case 'ns5r':
-			console.warn('Not implemented yet.');
+			{
+				const json = binToJsonForNS5R(bytes, {
+//					others:   [0x000174, 0x000276],
+					drumSets: [0x002e3c, 0x0038a6],
+					tones:    [0x0038a6, 0x02b40e],
+					combis:   [0x02b40e, 0x036b36],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
 			break;
 
 		default:
