@@ -77,6 +77,7 @@ function makeDrumSets(bytes, regions) {
 			const note = {
 				bytes: [...drumParamPackets[index]],
 			};
+			console.assert(note.bytes[8] === 0 && note.bytes[16] === 64 && note.bytes[17] === 64 && note.bytes[18] === 12 && note.bytes[19] === 54);
 			drumSet.notes[noteNo] = note;
 		}
 

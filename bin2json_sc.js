@@ -141,6 +141,8 @@ function makeTones(bytes, json) {
 				waveNo,
 				bytes: [...voiceBytes],
 			};
+			console.assert(voice.bytes[4] === 64);
+			console.assert([5, 7, 20, 37, 38, 39, 40].every((e) => voice.bytes[e] === 0));
 			if ((bits & (1 << i)) !== 0) {
 				voice.wave = {
 					name: json.waves[waveNo].name,
