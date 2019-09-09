@@ -1,4 +1,4 @@
-import {splitArrayByN} from './bin2json_common.js';
+import {splitArrayByN, makeAddress4byteBE} from './bin2json_common.js';
 
 export function binToJsonForMU(bytes, regions) {
 	const json = {};
@@ -59,7 +59,7 @@ function makeDrumSets(bytes, regions) {
 
 	const drumSets = [];
 	for (let drumSetNo = 0; drumSetNo < drumSetsAddrs.length; drumSetNo++) {
-		const addr = drumSetsAddrs[drumSetNo].reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+		const addr = makeAddress4byteBE(drumSetsAddrs[drumSetNo]);
 		const offsets = splitArrayByN(bytes.slice(addr, addr + 2 * 128), 2);
 
 		const drumSet = {
@@ -95,7 +95,7 @@ function makeDrumSets(bytes, regions) {
 		}
 
 		const drumKitNamePackets = splitArrayByN(bytes.slice(...regionsDrumKitNames), 12);
-		drumKitNameAddrs.push(...drumKitNamePackets.map((e) => e.slice(8).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0)), regionsDrumKitNames[1]);
+		drumKitNameAddrs.push(...drumKitNamePackets.map((e) => makeAddress4byteBE(e.slice(8))), regionsDrumKitNames[1]);
 		drumKitNameAddrs = [...new Set(drumKitNameAddrs)].sort((a, b) => a - b);
 
 		const tableDrumParam   = bytes.slice(...regionsTableDrumParam);
@@ -111,7 +111,7 @@ function makeDrumSets(bytes, regions) {
 
 			const drumSetNamePacket = drumKitNamePackets[indexName];
 			const name = String.fromCharCode(...drumSetNamePacket.slice(0, 8));
-			const addr = drumSetNamePacket.slice(8).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+			const addr = makeAddress4byteBE(drumSetNamePacket.slice(8));
 			const index = drumKitNameAddrs.indexOf(addr);
 			console.assert(index >= 0 && index < drumKitNameAddrs.length - 1);
 

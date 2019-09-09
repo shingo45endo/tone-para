@@ -1,4 +1,4 @@
-import {splitArrayByN} from './bin2json_common.js';
+import {splitArrayByN, makeAddress4byteBE} from './bin2json_common.js';
 
 export function binToJsonForNS5R(bytes, regions) {
 	const json = {};
@@ -103,7 +103,7 @@ function makeCombis(bytes) {
 
 		for (let i = 0; i < 8; i++) {
 			const programBytes = bytes.slice(index, index + 22);
-			const progAddr = programBytes.slice(14, 18).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+			const progAddr = makeAddress4byteBE(programBytes.slice(14, 18));
 			const toneOrDrum = addrMap.get(progAddr);
 
 			const prog = {
@@ -114,7 +114,7 @@ function makeCombis(bytes) {
 
 			index += 22;
 
-			if (programBytes.slice(18).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0) === 0) {
+			if (makeAddress4byteBE(programBytes.slice(18)) === 0) {
 				break;
 			}
 		}

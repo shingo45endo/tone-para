@@ -7,3 +7,8 @@ export function splitArrayByN(bytes, n) {
 		return p;
 	}, []);
 }
+
+export function makeAddress4byteBE(bytes) {
+	console.assert(bytes && bytes.length === 4);
+	return bytes.reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+}
