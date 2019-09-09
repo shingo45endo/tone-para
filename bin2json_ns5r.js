@@ -3,6 +3,9 @@ import {splitArrayByN} from './bin2json_common.js';
 export function binToJsonForNS5R(bytes, regions) {
 	const json = {};
 
+	if (regions.drums) {
+		json.drums = makeDrums(bytes.slice(...regions.drums), json);
+	}
 	if (regions.tones) {
 		json.tones = makeTones(bytes.slice(...regions.tones), json);
 	}
@@ -11,6 +14,37 @@ export function binToJsonForNS5R(bytes, regions) {
 	}
 
 	return json;
+}
+
+const addrMap = new Map();
+
+function makeDrums(bytes) {
+	const drumPackets = splitArrayByN(bytes, 86);
+	const drums = [];
+	for (let drumNo = 0; drumNo < drumPackets.length; drumNo++) {
+		const drumBytes = drumPackets[drumNo];
+		console.assert(drumBytes[10] === 2);
+
+		const commonBytes = drumBytes.slice(0, 14);
+		const voiceBytes = drumBytes.slice(14);
+		const name = String.fromCharCode(...commonBytes.slice(0, 10));
+
+		const drum = {
+			drumNo, name,
+			commonBytes: [...commonBytes],
+			voices: [
+				{
+//					waveNo: (voiceBytes[0] << 8) | voiceBytes[1],
+					bytes: [...voiceBytes],
+				},
+			],
+		};
+		addrMap.set(0x022e3c + drumNo * drumBytes.length, {drumNo, drum: {$ref: `#/drums/${drumNo}`}});
+
+		drums.push(drum);
+	}
+
+	return drums;
 }
 
 function makeTones(bytes) {
@@ -23,7 +57,6 @@ function makeTones(bytes) {
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
 		const voicePackets = splitArrayByN(toneBytes.slice(14), 72);
-
 		const name = String.fromCharCode(...commonBytes.slice(0, 10));
 
 		const tone = {
@@ -31,6 +64,7 @@ function makeTones(bytes) {
 			commonBytes: [...commonBytes],
 			voices: [],
 		};
+		addrMap.set(0x0238a6 + index, {toneNo, tone: {$ref: `#/tones/${toneNo}`}});
 
 		for (let i = 0; i < voicePackets.length; i++) {
 			const voiceBytes = voicePackets[i];
@@ -62,18 +96,21 @@ function makeCombis(bytes) {
 		const combi = {
 			combiNo, name,
 			commonBytes: [...commonBytes],
-			tones: [],
+			progs: [],
 		};
 
 		index += 14;
 
 		for (let i = 0; i < 8; i++) {
 			const programBytes = bytes.slice(index, index + 22);
-//			const toneAddr = programBytes.slice(14, 18).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
-			const tone = {
+			const progAddr = programBytes.slice(14, 18).reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
+			const toneOrDrum = addrMap.get(progAddr);
+
+			const prog = {
+				...toneOrDrum,
 				bytes: [...programBytes],
 			};
-			combi.tones.push(tone);
+			combi.progs.push(prog);
 
 			index += 22;
 

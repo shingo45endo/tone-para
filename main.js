@@ -169,7 +169,7 @@ try {
 			{
 				const json = binToJsonForNS5R(bytes, {
 //					others:   [0x000174, 0x000276],
-					drumSets: [0x002e3c, 0x0038a6],
+					drums:    [0x002e3c, 0x0038a6],
 					tones:    [0x0038a6, 0x02b40e],
 					combis:   [0x02b40e, 0x036b36],
 				});
