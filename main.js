@@ -167,11 +167,29 @@ try {
 
 		case 'ns5r':
 			{
-				const json = binToJsonForNS5R(bytes, {
+				const {root, dir, name, ext} = path.parse(filePath);
+				const m = name.match(/^(X572)(.*)/ui);
+				if (!m) {
+					throw new Error(`Invalid file: ${filePath}`);
+				}
+				const files = ['PROG', 'PCM'].reduce((p, c) => {
+					if (c === m[2]) {
+						p[c] = bytes;
+					} else {
+						const buf = fs.readFileSync(path.format({root, dir, name: `${m[1]}${c}`, ext}));
+						p[c] = new Uint8Array(buf);
+					}
+					return p;
+				}, {});
+
+				const json = binToJsonForNS5R(files, {
+					// PROG
 //					others:   [0x000174, 0x000276],
 					drums:    [0x002e3c, 0x0038a6],
 					tones:    [0x0038a6, 0x02b40e],
 					combis:   [0x02b40e, 0x036b36],
+
+					// PCM
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}

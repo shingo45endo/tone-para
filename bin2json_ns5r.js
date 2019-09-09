@@ -1,16 +1,16 @@
 import {splitArrayByN, makeAddress4byteBE} from './bin2json_common.js';
 
-export function binToJsonForNS5R(bytes, regions) {
+export function binToJsonForNS5R(files, regions) {
 	const json = {};
 
-	if (regions.drums) {
-		json.drums = makeDrums(bytes.slice(...regions.drums), json);
+	if (files.PROG && regions.drums) {
+		json.drums = makeDrums(files.PROG.slice(...regions.drums), json);
 	}
-	if (regions.tones) {
-		json.tones = makeTones(bytes.slice(...regions.tones), json);
+	if (files.PROG && regions.tones) {
+		json.tones = makeTones(files.PROG.slice(...regions.tones), json);
 	}
-	if (regions.combis) {
-		json.combis = makeCombis(bytes.slice(...regions.combis), json);
+	if (files.PROG && regions.combis) {
+		json.combis = makeCombis(files.PROG.slice(...regions.combis), json);
 	}
 
 	return json;
