@@ -190,8 +190,11 @@ try {
 					combis:   [0x02b40e, 0x036b36],
 
 					// PCM
-					multiSamples: [0x0106a6, 0x011b46],
-					drumSamples:  [0x011b46, 0x0133da],
+					multiSamples:   [0x0106a6, 0x011b46],
+					drumSamples:    [0x011b46, 0x0133da],
+					drumKitNames:   [0x013852, 0x0139d8],
+					tableDrumKits:  [0x0139da, 0x013a8a], 
+					drumNoteParams: [0x013a8a, 0x01fede],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}

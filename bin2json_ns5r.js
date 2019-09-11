@@ -9,6 +9,9 @@ export function binToJsonForNS5R(files, regions) {
 	if (files.PCM && regions.drumSamples) {
 		json.drumWaves = makeDrumSamples(files.PCM.slice(...regions.drumSamples), json);
 	}
+	if (files.PCM && regions.drumNoteParams) {
+		json.drumSets = makeDrumSets(files.PCM, regions, json);
+	}
 	if (files.PROG && regions.drums) {
 		json.drums = makeDrums(files.PROG.slice(...regions.drums), json);
 	}
@@ -22,8 +25,6 @@ export function binToJsonForNS5R(files, regions) {
 	return json;
 }
 
-const addrMap = new Map();
-
 function makeMultiSamples(bytes) {
 	const samplePackets = splitArrayByN(bytes, 10);
 	return samplePackets.map((e, i) => ({toneWaveNo: i, name: String.fromCharCode(...e)}));
@@ -33,6 +34,49 @@ function makeDrumSamples(bytes) {
 	const samplePackets = splitArrayByN(bytes, 22);
 	return samplePackets.map((e, i) => ({drumWaveNo: i, name: String.fromCharCode(...e.slice(0, 10))}));
 }
+
+function makeDrumSets(bytes, regions, json) {
+	const drumNames = splitArrayByN(bytes.slice(...regions.drumKitNames), 10).map((e) => String.fromCharCode(...e));
+	const drumSetsAddrs = splitArrayByN(bytes.slice(...regions.tableDrumKits), 4).map((e) => makeAddress4byteBE(e) - 0x60000);
+
+	const drumSets = [];
+	for (let drumSetNo = 0; drumSetNo < drumNames.length; drumSetNo++) {
+		const drumSet = {
+			drumSetNo,
+			name: drumNames[drumSetNo],
+			notes: {},
+		};
+
+		const addrBegin = drumSetsAddrs[drumSetNo];
+		const addrEnd   = drumSetsAddrs[drumSetNo + 1];
+		if (regions.drumNoteParams[0] <= addrBegin && addrBegin < regions.drumNoteParams[1] && regions.drumNoteParams[0] <= addrEnd && addrEnd < regions.drumNoteParams[1]) {
+			const drumParamPackets = splitArrayByN(bytes.slice(addrBegin, addrEnd), 14);
+			for (let i = 0; i < drumParamPackets.length; i++) {
+				const drumParamPacket = drumParamPackets[i];
+				if (/^0,0,0,0,\d+,0,4,0,0,0,0,64,0,0$/u.test(drumParamPacket.map((e) => String(e)).join(','))) {
+					continue;
+				}
+				const noteNo = 12 + i;
+				const drumWaveNo = (drumParamPacket[0] << 8) | drumParamPacket[1];
+				const note = {
+					drumWaveNo,
+					bytes: [...drumParamPackets[i]],
+					drumWave: {
+						name: json.drumWaves[drumWaveNo].name,
+						$ref: `#/drumWaves/${drumWaveNo}`,
+					},
+				};
+				drumSet.notes[noteNo] = note;
+			}
+		}
+
+		drumSets.push(drumSet);
+	}
+
+	return drumSets;
+}
+
+const addrMap = new Map();
 
 function makeDrums(bytes) {
 	const drumPackets = splitArrayByN(bytes, 86);
@@ -92,7 +136,7 @@ function makeTones(bytes, json) {
 				toneWave: {
 					name: json.toneWaves[toneWaveNo].name,
 					$ref: `#/toneWaves/${toneWaveNo}`,
-				}
+				},
 			};
 			tone.voices.push(voice);
 		}
