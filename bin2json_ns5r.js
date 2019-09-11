@@ -3,6 +3,12 @@ import {splitArrayByN, makeAddress4byteBE} from './bin2json_common.js';
 export function binToJsonForNS5R(files, regions) {
 	const json = {};
 
+	if (files.PCM && regions.multiSamples) {
+		json.toneWaves = makeMultiSamples(files.PCM.slice(...regions.multiSamples), json);
+	}
+	if (files.PCM && regions.drumSamples) {
+		json.drumWaves = makeDrumSamples(files.PCM.slice(...regions.drumSamples), json);
+	}
 	if (files.PROG && regions.drums) {
 		json.drums = makeDrums(files.PROG.slice(...regions.drums), json);
 	}
@@ -17,6 +23,16 @@ export function binToJsonForNS5R(files, regions) {
 }
 
 const addrMap = new Map();
+
+function makeMultiSamples(bytes) {
+	const samplePackets = splitArrayByN(bytes, 10);
+	return samplePackets.map((e, i) => ({toneWaveNo: i, name: String.fromCharCode(...e)}));
+}
+
+function makeDrumSamples(bytes) {
+	const samplePackets = splitArrayByN(bytes, 22);
+	return samplePackets.map((e, i) => ({drumWaveNo: i, name: String.fromCharCode(...e.slice(0, 10))}));
+}
 
 function makeDrums(bytes) {
 	const drumPackets = splitArrayByN(bytes, 86);
@@ -39,7 +55,7 @@ function makeDrums(bytes) {
 				},
 			],
 		};
-		addrMap.set(0x022e3c + drumNo * drumBytes.length, {drumNo, drum: {$ref: `#/drums/${drumNo}`}});
+		addrMap.set(0x022e3c + drumNo * drumBytes.length, {drumNo, drum: {name, $ref: `#/drums/${drumNo}`}});
 
 		drums.push(drum);
 	}
@@ -47,7 +63,8 @@ function makeDrums(bytes) {
 	return drums;
 }
 
-function makeTones(bytes) {
+function makeTones(bytes, json) {
+	console.assert(json && json.toneWaves);
 	const tones = [];
 	let index = 0;
 	let toneNo = 0;
@@ -64,14 +81,18 @@ function makeTones(bytes) {
 			commonBytes: [...commonBytes],
 			voices: [],
 		};
-		addrMap.set(0x0238a6 + index, {toneNo, tone: {$ref: `#/tones/${toneNo}`}});
+		addrMap.set(0x0238a6 + index, {toneNo, tone: {name, $ref: `#/tones/${toneNo}`}});
 
 		for (let i = 0; i < voicePackets.length; i++) {
 			const voiceBytes = voicePackets[i];
-			const waveNo = (voiceBytes[0] << 8) | voiceBytes[1];
+			const toneWaveNo = (voiceBytes[0] << 8) | voiceBytes[1];
 			const voice = {
-				waveNo,
+				toneWaveNo,
 				bytes: [...voiceBytes],
+				toneWave: {
+					name: json.toneWaves[toneWaveNo].name,
+					$ref: `#/toneWaves/${toneWaveNo}`,
+				}
 			};
 			tone.voices.push(voice);
 		}
@@ -85,7 +106,8 @@ function makeTones(bytes) {
 	return tones;
 }
 
-function makeCombis(bytes) {
+function makeCombis(bytes, json) {
+	console.assert(json && json.tones);
 	const combis = [];
 	let index = 0;
 	let combiNo = 0;
