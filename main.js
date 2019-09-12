@@ -172,7 +172,7 @@ try {
 				if (!m) {
 					throw new Error(`Invalid file: ${filePath}`);
 				}
-				const files = ['PROG', 'PCM'].reduce((p, c) => {
+				const files = ['PROG', 'PCM', 'DEMO'].reduce((p, c) => {
 					if (c === m[2]) {
 						p[c] = bytes;
 					} else {
@@ -193,10 +193,18 @@ try {
 					multiSamples:   [0x0106a6, 0x011b46],
 					drumSamples:    [0x011b46, 0x0133da],
 					drumKitNames:   [0x013852, 0x0139d8],
-					tableDrumKits:  [0x0139da, 0x013a8a], 
+					tableDrumKits:  [0x0139da, 0x013a8a],
 					drumNoteParams: [0x013a8a, 0x01fede],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+
+				Object.entries({
+					'2000_Fever.mid': [0x000008, 0x011350],
+					'MissionMan.mid': [0x011350, 0x01ddec],
+				}).forEach((e) => {
+					const [name, regions] = e;
+					fs.writeFileSync(name, files.DEMO.slice(...regions));
+				});
 			}
 			break;
 
