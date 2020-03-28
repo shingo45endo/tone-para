@@ -36,7 +36,7 @@ function makeTones(bytes) {
 
 		for (let i = 0; i < voicePackets.length; i++) {
 			const voiceBytes = voicePackets[i];
-			const waveNo = (voiceBytes[0] << 8) | voiceBytes[1];
+			const waveNo = (voiceBytes[0] << 7) | voiceBytes[1];
 			const voice = {
 				waveNo,
 				bytes: [...voiceBytes],
