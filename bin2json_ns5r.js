@@ -48,8 +48,11 @@ function makeDrumSets(bytes, regions, json) {
 		};
 
 		const addrBegin = drumSetsAddrs[drumSetNo];
-		const addrEnd   = drumSetsAddrs[drumSetNo + 1];
-		if (regions.drumNoteParams[0] <= addrBegin && addrBegin < regions.drumNoteParams[1] && regions.drumNoteParams[0] <= addrEnd && addrEnd < regions.drumNoteParams[1]) {
+		let addrEnd = drumSetsAddrs[drumSetNo + 1];
+		if (addrEnd < addrBegin) {
+			addrEnd = regions.drumNoteParams[1];
+		}
+		if (regions.drumNoteParams[0] <= addrBegin && addrBegin <= regions.drumNoteParams[1] && regions.drumNoteParams[0] <= addrEnd && addrEnd <= regions.drumNoteParams[1]) {
 			const drumParamPackets = splitArrayByN(bytes.slice(addrBegin, addrEnd), 14);
 			for (let i = 0; i < drumParamPackets.length; i++) {
 				const drumParamPacket = drumParamPackets[i];
@@ -113,7 +116,8 @@ function makeTones(bytes, json) {
 	let index = 0;
 	let toneNo = 0;
 	while (index < bytes.length) {
-		const numOscs = (bytes[index + 10] === 1) ? 2 : 1;
+		const kind = bytes[index + 10];
+		const numOscs = (kind === 1) ? 2 : 1;
 		const size = 14 + 72 * numOscs;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
@@ -129,15 +133,23 @@ function makeTones(bytes, json) {
 
 		for (let i = 0; i < voicePackets.length; i++) {
 			const voiceBytes = voicePackets[i];
-			const toneWaveNo = (voiceBytes[0] << 8) | voiceBytes[1];
+			const no = (voiceBytes[0] << 8) | voiceBytes[1];
 			const voice = {
-				toneWaveNo,
 				bytes: [...voiceBytes],
-				toneWave: {
-					name: json.toneWaves[toneWaveNo].name,
-					$ref: `#/toneWaves/${toneWaveNo}`,
-				},
 			};
+			if (kind !== 2) {
+				voice.toneWaveNo = no;
+				voice.toneWave = {
+					name: json.toneWaves[no].name,
+					$ref: `#/toneWaves/${no}`,
+				};
+			} else {
+				voice.drumSetNo = no;
+				voice.drumSet = {
+					name: json.drumSets[no].name,
+					$ref: `#/drumSets/${no}`,
+				};
+			}
 			tone.voices.push(voice);
 		}
 
