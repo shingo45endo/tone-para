@@ -93,18 +93,20 @@ function makeWaves(bytes) {
 		for (let i = 0; i < 32; i++) {
 			const sampleNo = sampleNos[i];
 			const sample = {
-				sampleNo,
+				sampleNo: ((sampleNo & 0x8000) === 0) ? sampleNo : sampleNo - 0x10000,
 				low: (i > 0) ? notes[i - 1] + 1 : 0,
 				high: notes[i],
 				level: levels[i],
-				sample: {
-					$ref: `#/samples/${sampleNo}`,
-				},
 			};
-			if (sample.sampleNo === 0xffff) {
+			if (sample.sampleNo >= 0) {
+				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
+			}
+
+			wave.samples.push(sample);
+
+			if (sample.high >= 0x7f) {
 				break;
 			}
-			wave.samples.push(sample);
 		}
 
 		waves.push(wave);
