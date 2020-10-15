@@ -70,7 +70,28 @@ export function binToJsonForSCD70(bytes, regions) {
 
 function makeSamples(bytes) {
 	const samplePackets = splitArrayByN(bytes, 22);
-	return samplePackets.map((e, i) => ({sampleNo: i, bytes: e}));
+
+	const samples = [];
+	for (let sampleNo = 0; sampleNo < samplePackets.length; sampleNo++) {
+		const sampleBytes = samplePackets[sampleNo];
+
+		const sample = {
+			sampleNo,
+			bytes: [...sampleBytes],
+			key:   sampleBytes[6],
+//			bank:  sampleBytes[10],
+//			begin: sampleBytes.slice( 7, 10).reduce((p, c) => (p << 8) | c, 0),
+//			end:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
+//			loop:  sampleBytes.slice(16, 18).reduce((p, c) => (p << 8) | c, 0),
+//			rate:  sampleBytes.slice( 4,  6).reduce((p, c) => (p << 8) | c, 0),
+//			rate2: sampleBytes.slice(14, 16).reduce((p, c) => (p << 8) | c, 0),
+		};
+//		console.assert(sample.end >= sample.begin);
+
+		samples.push(sample);
+	}
+
+	return samples;
 }
 
 function makeWaves(bytes) {
