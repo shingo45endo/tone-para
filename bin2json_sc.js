@@ -108,24 +108,24 @@ function makeWaves(bytes) {
 
 		const wave = {
 			waveNo, name,
-			samples: [],
+			multiSamples: [],
 		};
 		console.assert(notes.length === 32 && sampleNos.length === 32 && levels.length === 32);
 		for (let i = 0; i < 32; i++) {
 			const sampleNo = sampleNos[i];
-			const sample = {
+			const multiSample = {
 				sampleNo: ((sampleNo & 0x8000) === 0) ? sampleNo : sampleNo - 0x10000,
 				low: (i > 0) ? notes[i - 1] + 1 : 0,
 				high: notes[i],
 				level: levels[i],
 			};
-			if (sample.sampleNo >= 0) {
-				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
+			if (multiSample.sampleNo >= 0) {
+				Object.assign(multiSample, {sample: {$ref: `#/samples/${sampleNo}`}});
 			}
 
-			wave.samples.push(sample);
+			wave.multiSamples.push(multiSample);
 
-			if (sample.high >= 0x7f) {
+			if (multiSample.high >= 0x7f) {
 				break;
 			}
 		}
