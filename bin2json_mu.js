@@ -307,8 +307,17 @@ export function binToJsonForMU(bytes, regions) {
 	if (regions.drumParams && regions.tableDrumParamAddr) {
 		json.drumSets = makeDrumSets(bytes, regions);
 	}
+	if (regions.tableToneAddr && regions.tableToneMsb) {
+		const tablePrograms = makeProgTable(bytes, regions, json);
+		for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'GS', 'TG300B', 'GM2Basic', 'GM2Native']) {
+			if (regions.hasOwnProperty(`tableTone${kind}`)) {
+				json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
+			}
+		}
+	}
 
 	Object.assign(json, extraJson);
+	removePrivateProp(json);
 
 	return json;
 }
@@ -332,6 +341,7 @@ function makeTones(bytes) {
 			toneNo, name,
 			commonBytes: [...commonBytes],
 			voices: [],
+			_offset: index,
 		};
 
 		for (let i = 0; i < voicePackets.length; i++) {
@@ -385,7 +395,7 @@ function makeDrumSets(bytes, regions) {
 	}
 
 	let drumKitNameAddrs = [];
-	for (const kind of ['XG', 'SFX', 'GS', 'GM2']) {
+	for (const kind of ['XG', 'SFX', 'GS', 'TG300B', 'GM2']) {
 		const regionsTableDrumParam   = regions[`tableDrumParam${kind}`];
 		const regionsDrumKitNames     = regions[`drumKitNames${kind}`];
 		const regionsDrumNoteNames    = regions[`drumNoteNames${kind}`];
@@ -428,4 +438,120 @@ function makeDrumSets(bytes, regions) {
 	}
 
 	return drumSets;
+}
+
+function makePrograms(tablePrograms, json, kind) {
+	console.assert(json && json.tones);
+
+	const silenceToneNos = json.tones.filter((tone) => tone.name === 'Silence   ').map((tone) => tone.toneNo);
+
+	const programs = [];
+	if (kind !== 'GS' && kind !== 'TG300B') {
+		const bankM = {
+			XGBasic:     0,
+			XGNative:    0,
+			ModelExcl:  48,
+			GM2Basic:  121,
+			GM2Native: 121,
+		}[kind];
+
+		for (let prog = 0; prog < 128; prog++) {
+			for (let bankL = 0; bankL < 128; bankL++) {
+				const toneNo = tablePrograms(kind, prog, bankM, bankL);
+				if ((bankL > 0 && toneNo === tablePrograms(kind, prog, bankM, 0)) || silenceToneNos.includes(toneNo)) {
+					continue;
+				}
+				programs.push(makeProgram(kind, prog, bankM, bankL));
+			}
+		}
+
+	} else {
+		const bankL = 0;
+		for (let prog = 0; prog < 128; prog++) {
+			for (let bankM = 0; bankM < 126; bankM++) {
+				const toneNo = tablePrograms(kind, prog, bankM, bankL);
+				if ((bankM > 0 && toneNo === tablePrograms(kind, prog, 0, bankL)) || silenceToneNos.includes(toneNo)) {
+					continue;
+				}
+				programs.push(makeProgram(kind, prog, bankM, bankL));
+			}
+		}
+		for (const bankM of [126, 127]) {
+			for (let prog = 0; prog < 128; prog++) {
+				const toneNo = tablePrograms(kind, prog, bankM, bankL);
+				if (silenceToneNos.includes(toneNo)) {
+					continue;
+				}
+				programs.push(makeProgram(kind, prog, bankM, bankL));
+			}
+		}
+	}
+
+	return programs;
+
+	function makeProgram(kind, prog, bankM, bankL) {
+		const toneNo = tablePrograms(kind, prog, bankM, bankL);
+		return {
+			name: json.tones[toneNo].name,
+			bankM, bankL, prog,
+			toneNo,
+			tone: {
+				$ref: `#/tones/${toneNo}`,
+			},
+		};
+	}
+}
+
+function makeProgTable(bytes, regions, json) {
+	console.assert(json && json.tones);
+	console.assert(regions && regions.tableToneAddr && regions.tableToneMsb);
+
+	const toneTables = splitArrayByN(bytes.slice(...regions.tableToneAddr), 512).map((packet) => splitArrayByN(packet, 4).map((e) => {
+		const offset = ((e[0] << 24) | (e[1] << 16) | (e[2] << 8) | e[3]) * 2;
+		const tone = json.tones.filter((tone) => offset === tone._offset);
+		console.assert(tone.length === 1);
+		return tone[0].toneNo;
+	}));
+
+	const tableBanksMsb = bytes.slice(...regions.tableToneMsb);
+	const tables = Object.entries(regions).filter(([key, _]) => key.startsWith('tableTone')).reduce((p, [key, value]) => {
+		p[key] = bytes.slice(...value);
+		return p;
+	}, {});
+
+	return (kind, prog, bankM, bankL) => {
+		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
+		const tableBanks = tables[`tableTone${kind}`];
+		console.assert(tableBanks);
+		if (kind !== 'GS' && kind !== 'TG300B') {
+			if (bankM === 0 || bankM === 48 || bankM === 121) {
+				return toneTables[tableBanks[bankL]][prog];
+			} else {
+				return toneTables[tableBanksMsb[bankM]][prog];	// Ignores LSB
+			}
+		} else {
+			return toneTables[tableBanks[bankM]][prog];	// Ignores MSB
+		}
+	};
+}
+
+function removePrivateProp(json) {
+	console.assert(Array.isArray(json) || typeof json === 'object');
+	if (Array.isArray(json)) {
+		for (const elem of json) {
+			if (Array.isArray(elem) || typeof elem === 'object') {
+				removePrivateProp(elem);
+			}
+		}
+	} else {
+		for (const [key, value] of Object.entries(json)) {
+			if (key.startsWith('_')) {
+				delete json[key];
+			} else {
+				if (Array.isArray(value) || typeof value === 'object') {
+					removePrivateProp(value);
+				}
+			}
+		}
+	}
 }
