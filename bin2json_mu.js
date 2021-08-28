@@ -299,10 +299,10 @@ const extraJson = {
 };
 
 export function binToJsonForMU(bytes, regions) {
-	const json = {};
+	const json = {...extraJson};
 
 	if (regions.tones) {
-		json.tones = makeTones(bytes.slice(...regions.tones));
+		json.tones = makeTones(bytes.slice(...regions.tones), json);
 	}
 	if (regions.drumParams && regions.tableDrumParamAddr) {
 		json.drumSets = makeDrumSets(bytes, regions);
@@ -310,19 +310,18 @@ export function binToJsonForMU(bytes, regions) {
 	if (regions.tableToneAddr && regions.tableToneMsb) {
 		const tablePrograms = makeProgTable(bytes, regions, json);
 		for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'GS', 'TG300B', 'GM2Basic', 'GM2Native']) {
-			if (regions.hasOwnProperty(`tableTone${kind}`)) {
+			if (regions[`tableTone${kind}`]) {
 				json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 			}
 		}
 	}
 
-	Object.assign(json, extraJson);
 	removePrivateProp(json);
 
 	return json;
 }
 
-function makeTones(bytes) {
+function makeTones(bytes, json) {
 	const tones = [];
 	let index = 0;
 	let toneNo = 0;
@@ -350,6 +349,10 @@ function makeTones(bytes) {
 			const voice = {
 				waveNo,
 				bytes: [...voiceBytes],
+				wave: {
+					name: (json.waves[waveNo]) ? json.waves[waveNo].name : `(Wave #${waveNo})`,
+					$ref: `#/waves/${waveNo}`,
+				},
 			};
 			tone.voices.push(voice);
 		}
