@@ -9,6 +9,7 @@ import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc.js';
 import {binToJsonForMU} from './bin2json_mu.js';
+import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
 
 console.assert = assert;
@@ -17,7 +18,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'ns5r'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'tg300', 'ns5r'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -186,6 +187,20 @@ try {
 			}
 			break;
 
+		case 'tg300':
+			{
+				const json = binToJsonForTG300(bytes, {
+					waveNames:     [0x0028d0, 0x002ef0],
+					tableToneAddr: [0x006e2a, 0x00842a],
+					tableToneGM_B: [0x00842a, 0x0084aa],
+					tableToneGM_A: [0x0084aa, 0x00852a],
+//					tableTone???:  [0x00852a, 0x0085aa],
+					tones:         [0x010000, 0x01f0c0],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
 		case 'ns5r':
 			{
 				const {root, dir, name, ext} = path.parse(filePath);
@@ -276,6 +291,10 @@ try {
 
 		case 'ns5r':
 			console.warn('Not implemented yet.');
+			break;
+
+		case 'tg300':
+			console.warn('Not supported.');
 			break;
 
 		default:
