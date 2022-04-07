@@ -314,7 +314,10 @@ export function binToJsonForMU(bytes, regions) {
 				json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 			}
 		}
-	}
+		for (const kind of ['SFX']) {
+			json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
+		}
+}
 
 	removePrivateProp(json);
 
@@ -454,6 +457,7 @@ function makePrograms(tablePrograms, json, kind) {
 			XGBasic:     0,
 			XGNative:    0,
 			ModelExcl:  48,
+			SFX:        64,
 			GM2Basic:  121,
 			GM2Native: 121,
 		}[kind];
@@ -525,14 +529,15 @@ function makeProgTable(bytes, regions, json) {
 	return (kind, prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
 		const tableBanks = tables[`tableTone${kind}`];
-		console.assert(tableBanks);
 		if (kind !== 'GS' && kind !== 'TG300B') {
 			if (bankM === 0 || bankM === 48 || bankM === 121) {
+				console.assert(tableBanks);
 				return toneTables[tableBanks[bankL]][prog];
 			} else {
 				return toneTables[tableBanksMsb[bankM]][prog];	// Ignores LSB
 			}
 		} else {
+			console.assert(tableBanks);
 			return toneTables[tableBanks[bankM]][prog];	// Ignores MSB
 		}
 	};
