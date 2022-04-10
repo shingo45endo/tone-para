@@ -1,48 +1,51 @@
-import {parseSmfToSeq} from './smf-parser/smf_parser.js';
-import {analyzeMidiMessage} from './smf-parser/midi_event.js';
-import {makeValueFrom7bits} from './smf-parser/sysex_instance.js';
-
 export function midToBinForMU(bytes) {
 	const memMap = new Map();
-	const seq = parseSmfToSeq(bytes);
+
+	// Extracts SysExs from the SMF.
+	const str = [...bytes].map((e) => String.fromCharCode(e)).join('');
+	const sysExs = str.match(/\xf0[\x80-\xff]*[\x00-\x7f]+\xf7/ug).map((s) => [...s].map((ch) => ch.charCodeAt(0))).map((bytes) => {
+		const index = bytes.slice(1, 5).findIndex((e) => (e & 0x80) === 0);
+		bytes.splice(1, index + 1);
+		console.assert(bytes.slice(1, -1).every((e) => (e & 0x80) === 0));
+		return bytes;
+	});
+
+	// Decodes binary data.
 	let baseIndex = -1;
-	console.assert(seq.tracks.length === 1);
-	for (const events of seq.tracks[0].values()) {
-		for (const bytes of events) {
-			if (bytes[0] !== 0xf0) {
+	for (const bytes of sysExs) {
+		if (bytes[0] !== 0xf0 || bytes[1] !== 0x43 || bytes[3] !== 0x59 || bytes[bytes.length - 1] !== 0xf7) {
+			console.warn(`Unexpected SysEx: ${bytes}`);
+			continue;
+		}
+
+		const commandId = bytes[2];
+		if (commandId === 0x00) {	// Bulk Dump
+			const address = bytes.slice(6, 9);
+			const payload = bytes.slice(9, -2);
+			if (baseIndex < 0) {
+				console.log(`Ignored: ${bytes}`);
 				continue;
 			}
+			const addr = address.reduce((p, c) => (p << 7) | (c & 0x7f), 0);
+			memMap.set(baseIndex + addr, convert7to8bitsMU(payload));
 
-			const mes = analyzeMidiMessage(bytes);
-			if (!mes || !/^f0 43 .0 59/u.test(mes.hexStr) || !mes.address || mes.address.length !== 3) {
-				console.warn(`Unexpected SysEx: ${mes.hexStr}`);
-				continue;
-			}
-
-			if (bytes[2] === 0x00) {
-				if (baseIndex < 0) {
-					console.log(`Ignored: ${mes.hexStr}`);
-					continue;
-				}
-				const addr = makeValueFrom7bits(mes.address[2], mes.address[1], mes.address[0]);
-				memMap.set(baseIndex + addr, convert7to8bitsMU(mes.payload));
-
-			} else if (bytes[2] === 0x10) {
-				switch (bytes[4]) {
-				case 0x01:
-					baseIndex = makeValueFrom7bits(mes.address[2], mes.address[1]) << 14;
-					break;
-				case 0x03:
-					baseIndex = -1;
-					break;
-				default:
-					console.warn(`Unexpected SysEx: ${mes.hexStr}`);
-					break;
-				}
+		} else if (commandId === 0x10) {	// Parameter Change
+			const address = bytes.slice(4, 7);
+			switch (address[0]) {
+			case 0x01:
+				baseIndex = ((address[1] & 0x7f) << 21) | ((address[2] & 0x7f) << 14);
+				break;
+			case 0x03:
+				baseIndex = -1;
+				break;
+			default:
+				console.warn(`Unexpected SysEx: ${bytes}`);
+				break;
 			}
 		}
 	}
 
+	// Merges all the decoded data into a binary file.
 //	const min = Math.min(...memMap.keys());
 	const min = 0;
 	const max = Math.max(...memMap.keys());

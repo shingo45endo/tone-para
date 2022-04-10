@@ -2,8 +2,10 @@
   "name": "tone-para",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
-  "module": "main.js",
+  "engines": {
+    "node": ">=14"
+  },
+  "type": "module",
   "scripts": {
     "lint": "eslint *.js"
   },
@@ -18,7 +20,6 @@
   },
   "homepage": "https://github.com/shingo45endo/tone-para#readme",
   "dependencies": {
-    "esm": "^3.2.25",
     "yargs": "^13.3.0"
   },
   "devDependencies": {

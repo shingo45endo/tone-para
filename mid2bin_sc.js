@@ -1,30 +1,41 @@
-import {parseSmfToSeq} from './smf-parser/smf_parser.js';
-import {analyzeMidiMessage} from './smf-parser/midi_event.js';
-import {makeValueFrom7bits, convert7to8bits} from './smf-parser/sysex_instance.js';
-
 export function midToBinForSC(files) {
 	const memMap = new Map();
 	for (const file of files) {
-		const seq = parseSmfToSeq(file);
-		console.assert(seq.tracks.length === 1);
-		for (const events of seq.tracks[0].values()) {
-			for (const bytes of events) {
-				if (bytes[0] !== 0xf0) {
-					continue;
-				}
+		// Extracts SysExs from the SMF.
+		const str = [...file].map((e) => String.fromCharCode(e)).join('');
+		const sysExs = str.match(/\xf0[\x80-\xff]*[\x00-\x7f]+\xf7/ug).map((s) => [...s].map((ch) => ch.charCodeAt(0))).map((bytes) => {
+			const index = bytes.slice(1, 5).findIndex((e) => (e & 0x80) === 0);
+			bytes.splice(1, index + 1);
+			console.assert(bytes.slice(1, -1).every((e) => (e & 0x80) === 0));
+			return bytes;
+		});
 
-				const mes = analyzeMidiMessage(bytes);
-				if (!mes || !mes.payload || !mes.payload.length || !mes.address || mes.address.length !== 4) {
-					console.warn(`Unexpected SysEx: ${mes.hexStr}`);
-					continue;
-				}
-
-				const index = makeValueFrom7bits(mes.address[3], mes.address[2], mes.address[1], mes.address[0]);
-				memMap.set(index, convert7to8bits(mes.payload));
+		// Decodes binary data.
+		for (const bytes of sysExs) {
+			if (bytes[0] !== 0xf0 || bytes[1] !== 0x41 || bytes[bytes.length - 1] !== 0xf7) {
+				console.warn(`Unexpected SysEx: ${bytes}`);
+				continue;
 			}
+
+			let index = 3;
+			while (bytes[index] === 0x00) {
+				index++;
+			}
+			index++;
+			while (bytes[index] === 0x00) {
+				index++;
+			}
+			index++;
+
+			const address = bytes.slice(index, index + 4);
+			const payload = bytes.slice(index + 4, -2);
+
+			const addr = address.reduce((p, c) => (p << 7) | (c & 0x7f), 0);
+			memMap.set(addr, convert7to8bits(payload));
 		}
 	}
 
+	// Merges all the decoded data into a binary file.
 	const min = Math.min(...memMap.keys());
 	const max = Math.max(...memMap.keys());
 	const len = max + memMap.get(max).length - min;
@@ -36,4 +47,23 @@ export function midToBinForSC(files) {
 	}
 
 	return bin;
+}
+
+function convert7to8bits(bytes) {
+	console.assert(bytes && bytes.length > 0, 'Invalid argument', {bytes});
+
+	const packets = [...bytes].reduce((p, _, i, a) => {
+		if (i % 8 === 0) {
+			p.push(a.slice(i, i + 8));
+		}
+		return p;
+	}, []);
+	const data = packets.reduce((p, c) => {
+		const msbs = c.shift();
+		const bytes = c.map((e, i) => e | (((msbs & (1 << i)) !== 0) ? 0x80 : 0x00));
+		p.push(...bytes);
+		return p;
+	}, []);
+
+	return data;
 }
