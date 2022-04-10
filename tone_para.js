@@ -9,6 +9,7 @@ import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc.js';
 import {binToJsonForMU} from './bin2json_mu.js';
+import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
 import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
 
@@ -18,7 +19,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'tg300', 'ns5r'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -182,6 +183,63 @@ try {
 					drumNoteNamesGM2:       [0x17572c, 0x17752c],
 					drumKitNamesGM2:        [0x17752c, 0x1775b0],
 					tableDrumKitNameGM2:    [0x1775b0, 0x1776b0],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'mu100':
+			{
+				const json = binToJsonForMU100(bytes, {
+					tableToneAddr:       [0x0b4898, 0x0cb098],
+					tableToneMsb:        [0x0cb098, 0x0cb118],
+					tableToneXGBasic:    [0x0cb118, 0x0cb198],
+					tableToneModelExcl:  [0x0cb198, 0x0cb218],
+					tableToneXGNative:   [0x0cb218, 0x0cb298],
+					tableToneXGBasic2:   [0x0cb298, 0x0cb318],	// Unknown table
+					tableToneModelExcl2: [0x0cb318, 0x0cb398],	// Unknown table
+					tableToneXGBasic3:   [0x0cb498, 0x0cb518],	// Unknown table
+					tableToneTG300B:     [0x0cb518, 0x0cb598],
+					tones:               [0x0cb710, 0x0f692e],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'mu90':
+			{
+				const json = binToJsonForMU90(bytes, {
+					tableToneAddr:    [0x09725e, 0x09ba5e],
+					tableToneXGBasic: [0x09ba5e, 0x09bade],
+					tableToneMsb:     [0x09bade, 0x09bb5e],
+					tableToneTG300B:  [0x09bb5e, 0x09bbde],
+					tones:            [0x09bc8e, 0x0b36cc],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'mu80':
+			{
+				const json = binToJsonForMU80(bytes, {
+					tableToneAddr:    [0x0085b2, 0x00ccb2],
+					tableToneTG300B:  [0x00ccb2, 0x00cd32],
+					tableToneXGBasic: [0x00cd32, 0x00cdb2],
+					tableToneMsb:     [0x00cdb2, 0x00ce32],
+					tones:            [0x00e3ac, 0x02402a],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'mu50':
+			{
+				const json = binToJsonForMU50(bytes, {
+					tones:            [0x04f000, 0x067f06],
+					tableToneAddr:    [0x067f06, 0x06c606],
+					tableToneTG300B:  [0x06c606, 0x06c686],
+					tableToneXGBasic: [0x06c686, 0x06c706],
+					tableToneMsb:     [0x06c706, 0x06c786],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
