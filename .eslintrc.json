@@ -1,14 +1,15 @@
 {
 	"env": {
-		"es2017": true,
+		"es2020": true,
 		"node": true
 	},
 	"extends": "eslint:all",
 	"parserOptions": {
-		"ecmaVersion": 2018,
+		"ecmaVersion": 2020,
 		"sourceType": "module"
 	},
 	"rules": {
+		"brace-style": ["error", "1tbs", {"allowSingleLine": true}],
 		"indent": ["error", "tab", {"ignoreComments": true}],
 		"linebreak-style": ["error", "unix"],
 		"quotes": ["error", "single", {"avoidEscape": true, "allowTemplateLiterals": true}],
@@ -40,7 +41,7 @@
 		"no-use-before-define": ["error", "nofunc"],
 		"no-underscore-dangle": ["error", {"allowAfterThis": true}],
 		"no-unused-vars": ["error", {"argsIgnorePattern": "^_$", "varsIgnorePattern": "^_$"}],
-		"quote-props": ["error", "consistent-as-needed"],
+		"quote-props": ["error", "consistent"],
 		"space-before-function-paren": ["error", {
 			"anonymous": "never",
 			"named": "never",
@@ -84,6 +85,7 @@
 		"no-extra-parens": "off",
 		"no-inline-comments": "off",
 		"no-labels": "off",
+		"no-lonely-if": "off",
 		"no-magic-numbers": "off",
 		"no-multi-spaces": "off",
 		"no-negated-condition": "off",
@@ -98,6 +100,7 @@
 		"object-curly-newline": "off",
 		"object-property-newline": "off",
 		"one-var": "off",
+		"operator-linebreak": "off",
 		"padded-blocks": "off",
 		"prefer-destructuring": "off",
 		"prefer-named-capture-group": "off",
