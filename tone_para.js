@@ -12,6 +12,7 @@ import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
 import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
+import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 
 console.assert = assert;
 
@@ -19,7 +20,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'gz-70sp'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -302,6 +303,17 @@ try {
 			}
 			break;
 
+		case 'gz-70sp':
+			{
+				const json = binToJsonForGZ70SP(bytes, {
+					tones:              [0x0122aa, 0x013692],
+					samples:            [0x01388e, 0x015f2e],
+					tableSampleOffsets: [0x016092, 0x01f092],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
 		default:
 			console.assert(false);
 			break;
@@ -352,6 +364,7 @@ try {
 			break;
 
 		case 'tg300':
+		case 'gz-70sp':
 			console.warn('Not supported.');
 			break;
 
