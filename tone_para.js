@@ -12,6 +12,7 @@ import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
 import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
+import {midToJsonForAG10} from './mid2json_ag10.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 
 console.assert = assert;
@@ -20,7 +21,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'gz-70sp'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gz-70sp'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -314,6 +315,10 @@ try {
 			}
 			break;
 
+		case 'ag-10':
+			console.warn('Not supported.');
+			break;
+
 		default:
 			console.assert(false);
 			break;
@@ -361,6 +366,26 @@ try {
 
 		case 'ns5r':
 			console.warn('Not implemented yet.');
+			break;
+
+		case 'ag-10':
+			{
+				const {root, dir, name, ext} = path.parse(filePath);
+				const fileNames = fs.readdirSync(dir).filter((e) => /^\d{3}.*?\.AG/ui.test(path.basename(e)));
+
+				(async () => {
+					const fileObjs = await Promise.all(fileNames.map(async (fileName) => ({
+						name: fileName,
+						content: await util.promisify(fs.readFile)(path.join(dir, fileName)),
+					})));
+					const files = fileObjs.reduce((p, c) => {
+						p[c.name] = c.content;
+						return p;
+					}, {});
+					const json = midToJsonForAG10(files);
+					fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				})();
+			}
 			break;
 
 		case 'tg300':
