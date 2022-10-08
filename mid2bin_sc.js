@@ -1,3 +1,5 @@
+import {convert7to8bits} from './bin2json_common.js';
+
 export function midToBinForSC(files) {
 	const memMap = new Map();
 	for (const file of files) {
@@ -47,23 +49,4 @@ export function midToBinForSC(files) {
 	}
 
 	return bin;
-}
-
-function convert7to8bits(bytes) {
-	console.assert(bytes && bytes.length > 0, 'Invalid argument', {bytes});
-
-	const packets = [...bytes].reduce((p, _, i, a) => {
-		if (i % 8 === 0) {
-			p.push(a.slice(i, i + 8));
-		}
-		return p;
-	}, []);
-	const data = packets.reduce((p, c) => {
-		const msbs = c.shift();
-		const bytes = c.map((e, i) => e | (((msbs & (1 << i)) !== 0) ? 0x80 : 0x00));
-		p.push(...bytes);
-		return p;
-	}, []);
-
-	return data;
 }
