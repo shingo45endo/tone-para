@@ -8,6 +8,7 @@ import yargs from 'yargs';
 import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc.js';
+import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
 import {binToJsonForTG300} from './bin2json_tg300.js';
@@ -21,7 +22,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gz-70sp'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gz-70sp'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -79,6 +80,21 @@ try {
 					drumSets:      [0x0e2ade, 0x0fe6fe],
 					combis:        [0x1012fe, 0x1017ae],
 					drumNoteNames: [0x106428, 0x13c028],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'cm-32l':
+			{
+				const json = binToJsonForCM32L(bytes, {
+					tones: [
+						[0x00b000, 0x00bffa],
+						[0x00c000, 0x00fe2a],
+						[0x008a00, 0x00a876],
+					],
+					drumSet: [0x008580, 0x0086d4],
+					samples: [0x008100, 0x008500],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -388,6 +404,7 @@ try {
 			}
 			break;
 
+		case 'cm-32l':
 		case 'tg300':
 		case 'gz-70sp':
 			console.warn('Not supported.');
