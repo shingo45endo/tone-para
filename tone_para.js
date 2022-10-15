@@ -323,6 +323,7 @@ try {
 		case 'gz-70sp':
 			{
 				const json = binToJsonForGZ70SP(bytes, {
+					tableDrums:         [0x0047b8, 0x0047c8],
 					tones:              [0x0122aa, 0x013692],
 					samples:            [0x01388e, 0x015f2e],
 					tableSampleOffsets: [0x016092, 0x01f092],

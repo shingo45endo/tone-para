@@ -322,6 +322,9 @@ export function binToJsonForGZ70SP(bytes, regions) {
 			sample.name = json.samples[sample.sampleNo].name;
 		})));
 	}
+	if (regions.tableDrums) {
+		json.progDrums = makeProgDrums(bytes.slice(...regions.tableDrums), json);
+	}
 
 	removePrivateProp(json);
 
@@ -435,4 +438,15 @@ function makeSamples(bytes, json) {
 	}
 
 	return samples;
+}
+
+function makeProgDrums(bytes, json) {
+	const tableDrums = splitArrayByN(bytes, 2);
+	return tableDrums.map(([prog, toneNo]) => ({
+		prog, toneNo,
+		tone: {
+			name: json.tones[toneNo].name,
+			$ref: `#/tones/${toneNo}`,
+		},
+	}));
 }
