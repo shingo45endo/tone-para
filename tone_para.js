@@ -7,7 +7,7 @@ import yargs from 'yargs';
 
 import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
-import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc.js';
+import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc8820.js';
 import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
