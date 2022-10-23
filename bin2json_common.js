@@ -52,3 +52,15 @@ export function removePrivateProp(json) {
 		}
 	}
 }
+
+export function isValidRegion(regions) {
+	if (!Array.isArray(regions) || regions.length !== 2 || !regions.every((e) => Number.isInteger(e))) {
+		return false;
+	}
+	const [begin, end] = regions;
+	if (begin > end) {
+		return false;
+	}
+
+	return true;
+}

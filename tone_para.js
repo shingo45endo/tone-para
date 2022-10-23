@@ -14,6 +14,7 @@ import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50}
 import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
 import {midToJsonForAG10} from './mid2json_ag10.js';
+import {binToJsonForGMega} from './bin2json_gmega.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 
 console.assert = assert;
@@ -22,7 +23,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gz-70sp'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gmega', 'gz-70sp'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -30,7 +31,8 @@ const argv = yargs.
 	demandOption('mode').
 	argv;
 
-const filePath = path.isAbsolute(argv._[0]) ? argv._[0] : path.resolve('.', argv._[0]);
+const filePaths = argv._.map((filePath) => path.isAbsolute(filePath) ? filePath : path.resolve('.', filePath));
+const filePath = filePaths[0];
 
 try {
 	if (argv.bin) {
@@ -320,6 +322,32 @@ try {
 			}
 			break;
 
+		case 'gmega':
+			{
+				const buf2 = fs.readFileSync(filePaths[1]);
+				const files = {
+					PROG: (buf.length < buf2.length) ? buf : buf2,
+					PCM:  (buf.length < buf2.length) ? buf2 : buf,
+				};
+				const json = binToJsonForGMega(files, {
+					// PROG
+					toneNamesGM:      [0x008000, 0x008438],
+					toneNamesSP:      [0x008438, 0x008870],
+					drumToneNames:    [0x008870, 0x008c70],
+					tableToneParamGM: [0x009ce8, 0x009d68],
+					tableToneParamSP: [0x009d68, 0x009de8],
+					tableDrumNotes:   [0x009de8, 0x00a168],
+
+					// PCM
+					toneParamsGM:     [0x03c000, 0x03d800],
+					drumToneParamsGM: [0x03d800, 0x03e800],
+					toneParamsSP:     [0x040000, 0x041800],
+					drumToneParamsSP: [0x041800, 0x042800],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
 		case 'gz-70sp':
 			{
 				const json = binToJsonForGZ70SP(bytes, {
@@ -407,6 +435,7 @@ try {
 
 		case 'cm-32l':
 		case 'tg300':
+		case 'gmega':
 		case 'gz-70sp':
 			console.warn('Not supported.');
 			break;
