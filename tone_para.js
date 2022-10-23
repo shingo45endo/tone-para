@@ -15,6 +15,7 @@ import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
 import {midToJsonForAG10} from './mid2json_ag10.js';
 import {binToJsonForGMega} from './bin2json_gmega.js';
+import {binToJsonForGMegaLx} from './bin2json_gmegalx.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 
 console.assert = assert;
@@ -23,7 +24,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gmega', 'gz-70sp'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gmega', 'gmega-lx', 'gz-70sp'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -348,6 +349,18 @@ try {
 			}
 			break;
 
+		case 'gmega-lx':	// TODO: WIP
+			{
+				const json = binToJsonForGMegaLx(bytes, {
+					toneNames:      [0x008653, 0x008b8b],
+					tableDrumNotes: [0x009bab, 0x009f2b],
+					tableToneAddr:  [0x018000, 0x018140],
+					drumToneParams: [0x01e46a, 0x01efea],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
 		case 'gz-70sp':
 			{
 				const json = binToJsonForGZ70SP(bytes, {
@@ -436,6 +449,7 @@ try {
 		case 'cm-32l':
 		case 'tg300':
 		case 'gmega':
+		case 'gmega-lx':
 		case 'gz-70sp':
 			console.warn('Not supported.');
 			break;
