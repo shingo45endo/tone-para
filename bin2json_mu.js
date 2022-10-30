@@ -4,19 +4,19 @@ import {splitArrayByN, makeAddress4byteBE, removePrivateProp} from './bin2json_c
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
-export function binToJsonForMU(bytes, regions) {
+export function binToJsonForMU(allBytes, memMap) {
 	const json = {...extraJson};
 
-	if (regions.tones) {
-		json.tones = makeTones(bytes.slice(...regions.tones), json);
+	if (memMap.tones) {
+		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 	}
-	if (regions.drumParams && regions.tableDrumParamAddr) {
-		json.drumSets = makeDrumSets(bytes, regions);
+	if (memMap.drumParams && memMap.tableDrumParamAddrs) {
+		json.drumSets = makeDrumSets(allBytes, memMap);
 	}
-	if (regions.tableToneAddr && regions.tableToneMsb) {
-		const tablePrograms = makeProgTable(bytes, regions, json);
+	if (memMap.tableToneAddrs && memMap.tableTonesMsb) {
+		const tablePrograms = makeProgTable(allBytes, memMap, json);
 		for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'GS', 'TG300B', 'GM2Basic', 'GM2Native']) {
-			if (regions[`tableTone${kind}`]) {
+			if (memMap[`tableTones${kind}`]) {
 				json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 			}
 		}
@@ -37,8 +37,8 @@ function makeTones(bytes, json) {
 	while (index < bytes.length) {
 		const bits = bytes[index];
 		console.assert(bits === 0b0001 || bits === 0b0011 || bits === 0b0111 || bits === 0b1111);
-		const numElems = {0b0001: 1, 0b0011: 2, 0b0111: 3, 0b1111: 4}[bits];
-		const size = 14 + 84 * numElems;
+		const numVoices = {0b0001: 1, 0b0011: 2, 0b0111: 3, 0b1111: 4}[bits];
+		const size = 14 + 84 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
 		console.assert(commonBytes[12] === 0 && commonBytes[13] === 127);
@@ -76,9 +76,9 @@ function makeTones(bytes, json) {
 	return tones;
 }
 
-function makeDrumSets(bytes, regions) {
-	const drumParamPackets = splitArrayByN(bytes.slice(...regions.drumParams), 42);
-	const drumSetsAddrs = splitArrayByN(bytes.slice(...regions.tableDrumParamAddr), 4);
+function makeDrumSets(bytes, memMap) {
+	const drumParamPackets = splitArrayByN(bytes.slice(...memMap.drumParams), 42);
+	const drumSetsAddrs = splitArrayByN(bytes.slice(...memMap.tableDrumParamAddrs), 4);
 
 	const drumSets = [];
 	for (let drumSetNo = 0; drumSetNo < drumSetsAddrs.length; drumSetNo++) {
@@ -107,38 +107,38 @@ function makeDrumSets(bytes, regions) {
 		drumSets.push(drumSet);
 	}
 
-	let drumKitNameAddrs = [];
+	let drumSetNameAddrs = [];
 	for (const kind of ['XG', 'SFX', 'GS', 'TG300B', 'GM2']) {
-		const regionsTableDrumParam   = regions[`tableDrumParam${kind}`];
-		const regionsDrumKitNames     = regions[`drumKitNames${kind}`];
-		const regionsDrumNoteNames    = regions[`drumNoteNames${kind}`];
-		const regionsTableDrumKitName = regions[`tableDrumKitName${kind}`];
-		if (!regionsTableDrumParam || !regionsDrumKitNames || !regionsDrumNoteNames || !regionsTableDrumKitName) {
+		const tableDrumParamsRange   = memMap[`tableDrumParams${kind}`];
+		const drumSetNamesRange     = memMap[`drumSetNames${kind}`];
+		const drumNoteNamesRange    = memMap[`drumNoteNames${kind}`];
+		const tableDrumSetNamesRange = memMap[`tableDrumSetNames${kind}`];
+		if (!tableDrumParamsRange || !drumSetNamesRange || !drumNoteNamesRange || !tableDrumSetNamesRange) {
 			continue;
 		}
 
-		const drumKitNamePackets = splitArrayByN(bytes.slice(...regionsDrumKitNames), 12);
-		drumKitNameAddrs.push(...drumKitNamePackets.map((e) => makeAddress4byteBE(e.slice(8))), regionsDrumKitNames[1]);
-		drumKitNameAddrs = [...new Set(drumKitNameAddrs)].sort((a, b) => a - b);
+		const drumSetNamePackets = splitArrayByN(bytes.slice(...drumSetNamesRange), 12);
+		drumSetNameAddrs.push(...drumSetNamePackets.map((e) => makeAddress4byteBE(e.slice(8))), drumSetNamesRange[1]);
+		drumSetNameAddrs = [...new Set(drumSetNameAddrs)].sort((a, b) => a - b);
 
-		const tableDrumParam   = bytes.slice(...regionsTableDrumParam);
-		const tableDrumKitName = bytes.slice(...regionsTableDrumKitName);
-		console.assert(tableDrumParam.length === tableDrumKitName.length);
-		for (let i = 0; i < tableDrumKitName.length; i++) {
-			const indexName  = tableDrumKitName[i];
-			const indexParam = tableDrumParam[i];
+		const tableDrumParams   = bytes.slice(...tableDrumParamsRange);
+		const tableDrumSetNames = bytes.slice(...tableDrumSetNamesRange);
+		console.assert(tableDrumParams.length === tableDrumSetNames.length);
+		for (let i = 0; i < tableDrumSetNames.length; i++) {
+			const indexName  = tableDrumSetNames[i];
+			const indexParam = tableDrumParams[i];
 			const drumSet = drumSets[indexParam];
 			if (drumSet.name) {
 				continue;
 			}
 
-			const drumSetNamePacket = drumKitNamePackets[indexName];
+			const drumSetNamePacket = drumSetNamePackets[indexName];
 			const name = String.fromCharCode(...drumSetNamePacket.slice(0, 8));
 			const addr = makeAddress4byteBE(drumSetNamePacket.slice(8));
-			const index = drumKitNameAddrs.indexOf(addr);
-			console.assert(index >= 0 && index < drumKitNameAddrs.length - 1);
+			const index = drumSetNameAddrs.indexOf(addr);
+			console.assert(index >= 0 && index < drumSetNameAddrs.length - 1);
 
-			const drumNoteNames = splitArrayByN(bytes.slice(drumKitNameAddrs[index], drumKitNameAddrs[index + 1]), 12).map((e) => String.fromCharCode(...e));
+			const drumNoteNames = splitArrayByN(bytes.slice(drumSetNameAddrs[index], drumSetNameAddrs[index + 1]), 12).map((e) => String.fromCharCode(...e));
 			for (const key of Object.keys(drumSet.notes)) {
 				if (!drumSet.notes[key].name) {
 					const offset = {XG: 13, SFX: 13, GS: 25, GM2: 25}[kind];
@@ -216,26 +216,26 @@ function makePrograms(tablePrograms, json, kind) {
 	}
 }
 
-function makeProgTable(bytes, regions, json) {
+function makeProgTable(bytes, memMap, json) {
 	console.assert(json && json.tones);
-	console.assert(regions && regions.tableToneAddr && regions.tableToneMsb);
+	console.assert(memMap && memMap.tableToneAddrs && memMap.tableTonesMsb);
 
-	const toneTables = splitArrayByN(bytes.slice(...regions.tableToneAddr), 512).map((packet) => splitArrayByN(packet, 4).map((e) => {
+	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), 512).map((packet) => splitArrayByN(packet, 4).map((e) => {
 		const offset = ((e[0] << 24) | (e[1] << 16) | (e[2] << 8) | e[3]) * 2;
 		const tone = json.tones.filter((tone) => offset === tone._offset);
 		console.assert(tone.length === 1);
 		return tone[0].toneNo;
 	}));
 
-	const tableBanksMsb = bytes.slice(...regions.tableToneMsb);
-	const tables = Object.entries(regions).filter(([key, _]) => key.startsWith('tableTone')).reduce((p, [key, value]) => {
+	const tableBanksMsb = bytes.slice(...memMap.tableTonesMsb);
+	const tables = Object.entries(memMap).filter(([key, _]) => key.startsWith('tableTones')).reduce((p, [key, value]) => {
 		p[key] = bytes.slice(...value);
 		return p;
 	}, {});
 
 	return (kind, prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
-		const tableBanks = tables[`tableTone${kind}`];
+		const tableBanks = tables[`tableTones${kind}`];
 		if (kind !== 'GS' && kind !== 'TG300B') {
 			if (bankM === 0 || bankM === 48 || bankM === 121) {
 				console.assert(tableBanks);

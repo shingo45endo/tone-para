@@ -219,16 +219,16 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		additionalMaps: ['SFX', 'DOC'],
 	},
 ].map((props) => {
-	return (bytes, regions) => {
+	return (allBytes, memMap) => {
 		const json = {...extraJson};
 
-		if (regions.tones) {
-			json.tones = makeTones(bytes.slice(...regions.tones), props, json);
+		if (memMap.tones) {
+			json.tones = makeTones(allBytes.slice(...memMap.tones), props, json);
 		}
-		if (regions.tableToneAddr && regions.tableToneMsb) {
-			const tablePrograms = makeProgTable(bytes, regions, json, props.addrSize);
+		if (memMap.tableToneAddrs && memMap.tableTonesMsb) {
+			const tablePrograms = makeProgTable(allBytes, memMap, json, props.addrSize);
 			for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'TG300B']) {
-				if (regions[`tableTone${kind}`]) {
+				if (memMap[`tableTones${kind}`]) {
 					json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 				}
 			}
@@ -255,8 +255,8 @@ function makeTones(bytes, props, json) {
 		}
 		const bits = commonBytes[0x00];
 		console.assert(bits === 0b01 || bits === 0b11);
-		const numElems = {0b01: 1, 0b11: 2}[bits];
-		let voicePackets = splitArrayByN(bytes.slice(index + 10, index + 10 + props.voicePacketSize * numElems), props.voicePacketSize);
+		const numVoices = {0b01: 1, 0b11: 2}[bits];
+		let voicePackets = splitArrayByN(bytes.slice(index + 10, index + 10 + props.voicePacketSize * numVoices), props.voicePacketSize);
 		if (props.convertVoicePacket) {
 			voicePackets = voicePackets.map((e) => props.convertVoicePacket(e));
 		}
@@ -286,7 +286,7 @@ function makeTones(bytes, props, json) {
 
 		tones.push(tone);
 
-		index += 10 + props.voicePacketSize * numElems;
+		index += 10 + props.voicePacketSize * numVoices;
 		toneNo++;
 	}
 
@@ -354,26 +354,26 @@ function makePrograms(tablePrograms, json, kind) {
 	}
 }
 
-function makeProgTable(bytes, regions, json, addrSize) {
+function makeProgTable(bytes, memMap, json, addrSize) {
 	console.assert(json && json.tones);
-	console.assert(regions && regions.tableToneAddr && regions.tableToneMsb);
+	console.assert(memMap && memMap.tableToneAddrs && memMap.tableTonesMsb);
 
-	const toneTables = splitArrayByN(bytes.slice(...regions.tableToneAddr), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
+	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
 		const offset = e.reduce((p, c) => (p << 8) | c, 0) * ((addrSize === 2) ? 2 : 1);
 		const tone = json.tones.filter((tone) => offset === tone._offset);
 		console.assert(tone.length === 1);
 		return tone[0].toneNo;
 	}));
 
-	const tableBanksMsb = bytes.slice(...regions.tableToneMsb);
-	const tables = Object.entries(regions).filter(([key, _]) => key.startsWith('tableTone')).reduce((p, [key, value]) => {
+	const tableBanksMsb = bytes.slice(...memMap.tableTonesMsb);
+	const tables = Object.entries(memMap).filter(([key, _]) => key.startsWith('tableTones')).reduce((p, [key, value]) => {
 		p[key] = bytes.slice(...value);
 		return p;
 	}, {});
 
 	return (kind, prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
-		const tableBanks = tables[`tableTone${kind}`];
+		const tableBanks = tables[`tableTones${kind}`];
 		switch (kind) {
 		case 'TG300B':
 			console.assert(tableBanks);

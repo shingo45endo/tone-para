@@ -260,23 +260,23 @@ const sampleNames = [
 ];
 console.assert(sampleNames.length === 256);
 
-export function binToJsonForCM32L(bytes, regions) {
+export function binToJsonForCM32L(allBytes, memMap) {
 	const json = {
 		tones: null,
 		drumSet: null,
 		samples: null,
 	};
 
-	if (regions.samples) {
-		json.samples = makeSamples(bytes.slice(...regions.samples));
+	if (memMap.samples) {
+		json.samples = makeSamples(allBytes.slice(...memMap.samples));
 	}
-	if (regions.tones) {
-		const tonesBytes = regions.tones.map((region) => [...bytes.slice(...region)]);
+	if (memMap.tonesRanges) {
+		const tonesBytes = memMap.tonesRanges.map((range) => [...allBytes.slice(...range)]);
 		tonesBytes.splice(2, 0, (new Array(14 * 64)).fill(0));	// For User Timbres
 		json.tones = makeTones([].concat(...tonesBytes), json);
 	}
-	if (regions.drumSet) {
-		json.drumSet = makeDrumSet(bytes.slice(...regions.drumSet), json);
+	if (memMap.drumSet) {
+		json.drumSet = makeDrumSet(allBytes.slice(...memMap.drumSet), json);
 	}
 
 	return json;
@@ -287,10 +287,10 @@ function makeTones(bytes, json) {
 	let index = 0;
 	let toneNo = 0;
 	while (index < bytes.length) {
-		const numPartials = [0, 1,  , 2,  ,  ,  , 3,  ,  ,  ,  ,  ,  ,  , 4][bytes[index + 0x0c]];
-//		const numPartials = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4][bytes[index + 0x0c]];
-		console.assert(0 <= numPartials && numPartials <= 4);
-		const size = 14 + 58 * numPartials;
+		const numVoices = [0, 1,  , 2,  ,  ,  , 3,  ,  ,  ,  ,  ,  ,  , 4][bytes[index + 0x0c]];
+//		const numVoices = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4][bytes[index + 0x0c]];
+		console.assert(0 <= numVoices && numVoices <= 4);
+		const size = 14 + 58 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
 		const voicePackets = splitArrayByN(toneBytes.slice(14), 58);

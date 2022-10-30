@@ -520,9 +520,9 @@ const drumToneWaveNames = [
 ];
 console.assert(drumToneWaveNames.length === 256);
 
-export function binToJsonForGMega(files, regions) {
+export function binToJsonForGMega(files, memMap) {
 	console.assert(files?.PROG && files?.PCM);
-	console.assert(regions && Object.values(regions).every((e) => isValidRange(e)));
+	console.assert(memMap && Object.values(memMap).every((range) => isValidRange(range)));
 
 	const json = {};
 
@@ -531,29 +531,29 @@ export function binToJsonForGMega(files, regions) {
 	json.drumWaves = drumToneWaveNames.map((name, drumWaveNo) => ({drumWaveNo, name}));
 
 	// Tones
-	json.tonesGM = makeTones(files, regions, 'GM');
-	json.tonesSP = makeTones(files, regions, 'SP');
-	json.drumTonesGM = makeDrumTones(files, regions, 'GM');
-	json.drumTonesSP = makeDrumTones(files, regions, 'SP');
+	json.tonesGM = makeTones(files, memMap, 'GM');
+	json.tonesSP = makeTones(files, memMap, 'SP');
+	json.drumTonesGM = makeDrumTones(files, memMap, 'GM');
+	json.drumTonesSP = makeDrumTones(files, memMap, 'SP');
 
 	// Drum Sets
-	console.assert(regions.tableDrumNotes);
-	json.drumSets = makeDrumSets(files.PROG.slice(...regions.tableDrumNotes), json);
+	console.assert(memMap.tableDrumNotes);
+	json.drumSets = makeDrumSets(files.PROG.slice(...memMap.tableDrumNotes), json);
 
 	return json;
 }
 
-function makeTones(files, regions, kind) {
-	const regionsToneNames      = regions[`toneNames${kind}`];
-	const regionsTableToneParam = regions[`tableToneParam${kind}`];
-	const regionsToneParams     = regions[`toneParams${kind}`];
-	console.assert(regionsToneNames && regionsTableToneParam && regionsToneParams);
+function makeTones(files, memMap, kind) {
+	const toneNamesRange       = memMap[`toneNames${kind}`];
+	const tableToneParamsRange = memMap[`tableToneParams${kind}`];
+	const toneParamsRange      = memMap[`toneParams${kind}`];
+	console.assert(toneNamesRange && tableToneParamsRange && toneParamsRange);
 
-	const toneNames = splitArrayByN(files.PROG.slice(...regionsToneNames), 8).map((bytes) => String.fromCharCode(...bytes));
+	const toneNames = splitArrayByN(files.PROG.slice(...toneNamesRange), 8).map((bytes) => String.fromCharCode(...bytes));
 	console.assert(toneNames.length === 135);
-	const tableToneParams = files.PROG.slice(...regionsTableToneParam);
+	const tableToneParams = files.PROG.slice(...tableToneParamsRange);
 	console.assert(tableToneParams.length === 128);
-	const toneParamsPackets = splitArrayByN(files.PCM.slice(...regionsToneParams), 32);
+	const toneParamsPackets = splitArrayByN(files.PCM.slice(...toneParamsRange), 32);
 	console.assert(toneParamsPackets.length === 192);
 
 	const tones = [];
@@ -593,13 +593,13 @@ function makeTones(files, regions, kind) {
 	return tones;
 }
 
-function makeDrumTones(files, regions, kind) {
-	const regionsDrumToneParams = regions[`drumToneParams${kind}`];
-	console.assert(regionsDrumToneParams);
+function makeDrumTones(files, memMap, kind) {
+	const drumToneParamsRange = memMap[`drumToneParams${kind}`];
+	console.assert(drumToneParamsRange);
 
-	const drumToneNames = splitArrayByN(files.PROG.slice(...regions.drumToneNames), 8).map((bytes) => String.fromCharCode(...bytes));
+	const drumToneNames = splitArrayByN(files.PROG.slice(...memMap.drumToneNames), 8).map((bytes) => String.fromCharCode(...bytes));
 	console.assert(drumToneNames.length === 128);
-	const drumToneParamsPackets = splitArrayByN(files.PCM.slice(...regionsDrumToneParams), 32);
+	const drumToneParamsPackets = splitArrayByN(files.PCM.slice(...drumToneParamsRange), 32);
 	console.assert(drumToneParamsPackets.length === 128);
 
 	const drumTones = [];

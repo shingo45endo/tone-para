@@ -1,31 +1,31 @@
 import {splitArrayByN, makeAddress4byteBE} from './bin2json_common.js';
 
-export function binToJsonForNS5R(files, regions) {
+export function binToJsonForNS5R(files, memMap) {
 	const json = {};
 
-	if (files.PCM && regions.multiSamples) {
-		json.toneWaves = makeMultiSamples(files.PCM.slice(...regions.multiSamples), json);
+	if (files.PCM && memMap.samples) {
+		json.toneWaves = makeSamples(files.PCM.slice(...memMap.samples), json);
 	}
-	if (files.PCM && regions.drumSamples) {
-		json.drumWaves = makeDrumSamples(files.PCM.slice(...regions.drumSamples), json);
+	if (files.PCM && memMap.drumSamples) {
+		json.drumWaves = makeDrumSamples(files.PCM.slice(...memMap.drumSamples), json);
 	}
-	if (files.PCM && regions.drumNoteParams) {
-		json.drumSets = makeDrumSets(files.PCM, regions, json);
+	if (files.PCM && memMap.drumNoteParams) {
+		json.drumSets = makeDrumSets(files.PCM, memMap, json);
 	}
-	if (files.PROG && regions.drums) {
-		json.drums = makeDrums(files.PROG.slice(...regions.drums), json);
+	if (files.PROG && memMap.drums) {
+		json.drums = makeDrums(files.PROG.slice(...memMap.drums), json);
 	}
-	if (files.PROG && regions.tones) {
-		json.tones = makeTones(files.PROG.slice(...regions.tones), json);
+	if (files.PROG && memMap.tones) {
+		json.tones = makeTones(files.PROG.slice(...memMap.tones), json);
 	}
-	if (files.PROG && regions.combis) {
-		json.combis = makeCombis(files.PROG.slice(...regions.combis), json);
+	if (files.PROG && memMap.combis) {
+		json.combis = makeCombis(files.PROG.slice(...memMap.combis), json);
 	}
 
 	return json;
 }
 
-function makeMultiSamples(bytes) {
+function makeSamples(bytes) {
 	const samplePackets = splitArrayByN(bytes, 10);
 	return samplePackets.map((e, i) => ({toneWaveNo: i, name: String.fromCharCode(...e)}));
 }
@@ -35,9 +35,9 @@ function makeDrumSamples(bytes) {
 	return samplePackets.map((e, i) => ({drumWaveNo: i, name: String.fromCharCode(...e.slice(0, 10))}));
 }
 
-function makeDrumSets(bytes, regions, json) {
-	const drumNames = splitArrayByN(bytes.slice(...regions.drumKitNames), 10).map((e) => String.fromCharCode(...e));
-	const drumSetsAddrs = splitArrayByN(bytes.slice(...regions.tableDrumKits), 4).map((e) => makeAddress4byteBE(e) - 0x60000);
+function makeDrumSets(pcmBytes, memMap, json) {
+	const drumNames = splitArrayByN(pcmBytes.slice(...memMap.drumSetNames), 10).map((e) => String.fromCharCode(...e));
+	const drumSetsAddrs = splitArrayByN(pcmBytes.slice(...memMap.tableDrumSets), 4).map((e) => makeAddress4byteBE(e) - 0x60000);
 
 	const drumSets = [];
 	for (let drumSetNo = 0; drumSetNo < drumNames.length; drumSetNo++) {
@@ -50,10 +50,10 @@ function makeDrumSets(bytes, regions, json) {
 		const addrBegin = drumSetsAddrs[drumSetNo];
 		let addrEnd = drumSetsAddrs[drumSetNo + 1];
 		if (addrEnd < addrBegin) {
-			addrEnd = regions.drumNoteParams[1];
+			addrEnd = memMap.drumNoteParams[1];
 		}
-		if (regions.drumNoteParams[0] <= addrBegin && addrBegin <= regions.drumNoteParams[1] && regions.drumNoteParams[0] <= addrEnd && addrEnd <= regions.drumNoteParams[1]) {
-			const drumParamPackets = splitArrayByN(bytes.slice(addrBegin, addrEnd), 14);
+		if (memMap.drumNoteParams[0] <= addrBegin && addrBegin <= memMap.drumNoteParams[1] && memMap.drumNoteParams[0] <= addrEnd && addrEnd <= memMap.drumNoteParams[1]) {
+			const drumParamPackets = splitArrayByN(pcmBytes.slice(addrBegin, addrEnd), 14);
 			for (let i = 0; i < drumParamPackets.length; i++) {
 				const drumParamPacket = drumParamPackets[i];
 				if (/^0,0,0,0,\d+,0,4,0,0,0,0,64,0,0$/u.test(drumParamPacket.map((e) => String(e)).join(','))) {
@@ -117,8 +117,8 @@ function makeTones(bytes, json) {
 	let toneNo = 0;
 	while (index < bytes.length) {
 		const kind = bytes[index + 10];
-		const numOscs = (kind === 1) ? 2 : 1;
-		const size = 14 + 72 * numOscs;
+		const numVoices = (kind === 1) ? 2 : 1;
+		const size = 14 + 72 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
 		const voicePackets = splitArrayByN(toneBytes.slice(14), 72);

@@ -1,18 +1,18 @@
 import {splitArrayByN, removePrivateProp} from './bin2json_common.js';
 
-export function binToJsonForTG300(bytes, regions) {
+export function binToJsonForTG300(allBytes, memMap) {
 	const json = {};
 
-	if (regions.waveNames) {
-		json.waves = makeWaves(bytes.slice(...regions.waveNames));
+	if (memMap.waveNames) {
+		json.waves = makeWaves(allBytes.slice(...memMap.waveNames));
 	}
-	if (regions.tones) {
-		json.tones = makeTones(bytes.slice(...regions.tones), json);
+	if (memMap.tones) {
+		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 	}
-	if (regions.tableToneAddr) {
-		const tablePrograms = makeProgTable(bytes, regions, json);
+	if (memMap.tableToneAddrs) {
+		const tablePrograms = makeProgTable(allBytes, memMap, json);
 		for (const kind of ['GM_A', 'GM_B']) {
-			if (regions[`tableTone${kind}`]) {
+			if (memMap[`tableTones${kind}`]) {
 				json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 			}
 		}
@@ -46,9 +46,9 @@ function makeTones(bytes, json) {
 	let index = 0;
 	let toneNo = 0;
 	while (index < bytes.length) {
-		const numElems = bytes[index + 0x05] + 1;
-		console.assert(numElems === 1 || numElems === 2);
-		const size = 16 + 80 * numElems;
+		const numVoices = bytes[index + 0x05] + 1;
+		console.assert(numVoices === 1 || numVoices === 2);
+		const size = 16 + 80 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 16);
 		console.assert(commonBytes[15] === 0x00);
@@ -133,10 +133,10 @@ function makePrograms(tablePrograms, json, kind) {
 	}
 }
 
-function makeProgTable(bytes, regions, json) {
+function makeProgTable(allBytes, memMap, json) {
 	console.assert(json && json.tones);
 
-	const toneTables = splitArrayByN(bytes.slice(...regions.tableToneAddr), 256).map((packet, i) => splitArrayByN(packet, 2).map((e) => {
+	const toneTables = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 256).map((packet, i) => splitArrayByN(packet, 2).map((e) => {
 		if (i === 0x10) {
 			return 0;
 		}
@@ -146,14 +146,14 @@ function makeProgTable(bytes, regions, json) {
 		return tone[0].toneNo;
 	}));
 
-	const tables = Object.entries(regions).filter(([key, _]) => key.startsWith('tableTone')).reduce((p, [key, value]) => {
-		p[key] = bytes.slice(...value);
+	const tables = Object.entries(memMap).filter(([key, _]) => key.startsWith('tableTones')).reduce((p, [key, value]) => {
+		p[key] = allBytes.slice(...value);
 		return p;
 	}, {});
 
 	return (kind, prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
-		const tableBanks = tables[`tableTone${kind}`];
+		const tableBanks = tables[`tableTones${kind}`];
 		console.assert(tableBanks);
 		const index = (kind === 'GM_A') ? bankL : bankM;
 		return toneTables[tableBanks[index]][prog];

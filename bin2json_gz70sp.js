@@ -305,25 +305,25 @@ const drumNames = [
 ];
 console.assert(drumNames.length === 8);
 
-export function binToJsonForGZ70SP(bytes, regions) {
+export function binToJsonForGZ70SP(allBytes, memMap) {
 	const json = {};
 
-	if (regions.tableSampleOffsets) {
-		json._tableSampleOffsets = splitArrayByN(bytes.slice(...regions.tableSampleOffsets), 256).map((tableBytes) => splitArrayByN(tableBytes, 2).map((e) => (new DataView(e.buffer)).getUint16(0, true)));
+	if (memMap.tableSampleOffsets) {
+		json._tableSampleOffsets = splitArrayByN(allBytes.slice(...memMap.tableSampleOffsets), 256).map((tableBytes) => splitArrayByN(tableBytes, 2).map((e) => (new DataView(e.buffer)).getUint16(0, true)));
 	}
-	if (regions.tones && regions.tableSampleOffsets) {
-		json.tones = makeTones(bytes.slice(...regions.tones), json);
+	if (memMap.tones && memMap.tableSampleOffsets) {
+		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 	}
-	if (regions.samples && regions.tones && regions.tableSampleOffsets) {
-		json.samples = makeSamples(bytes.slice(...regions.samples), json);
+	if (memMap.samples && memMap.tones && memMap.tableSampleOffsets) {
+		json.samples = makeSamples(allBytes.slice(...memMap.samples), json);
 
 		// Sets sample names.
 		json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.samples.forEach((sample) => {
 			sample.name = json.samples[sample.sampleNo].name;
 		})));
 	}
-	if (regions.tableDrums) {
-		json.progDrums = makeProgDrums(bytes.slice(...regions.tableDrums), json);
+	if (memMap.tableDrums) {
+		json.progDrums = makeProgDrums(allBytes.slice(...memMap.tableDrums), json);
 	}
 
 	removePrivateProp(json);

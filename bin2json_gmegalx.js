@@ -132,29 +132,29 @@ const drumToneNames = [
 ];
 console.assert(drumToneNames.length === 128);
 
-export function binToJsonForGMegaLx(bytes, regions) {
-	console.assert(bytes && regions && Object.values(regions).every((e) => isValidRange(e)));
+export function binToJsonForGMegaLx(allBytes, memMap) {
+	console.assert(allBytes && memMap && Object.values(memMap).every((range) => isValidRange(range)));
 
 	const json = {};
 
 	// Tones
-	json.tones = makeTones(bytes, regions);
-	console.assert(regions.drumToneParams);
-	json.drumTones = makeDrumTones(bytes.slice(...regions.drumToneParams), json);
+	json.tones = makeTones(allBytes, memMap);
+	console.assert(memMap.drumToneParams);
+	json.drumTones = makeDrumTones(allBytes.slice(...memMap.drumToneParams), json);
 
 	// Drum Sets
-	console.assert(regions.tableDrumNotes);
-	json.drumSets = makeDrumSets(bytes.slice(...regions.tableDrumNotes), json);
+	console.assert(memMap.tableDrumNotes);
+	json.drumSets = makeDrumSets(allBytes.slice(...memMap.tableDrumNotes), json);
 
 	return json;
 }
 
-function makeTones(bytes, regions) {
-	console.assert(regions.toneNames && regions.tableToneAddr);
+function makeTones(bytes, memMap) {
+	console.assert(memMap.toneNames && memMap.tableToneAddrs);
 
-	const toneNames = splitArrayByN(bytes.slice(...regions.toneNames), 8).map((bytes) => String.fromCharCode(...bytes));
+	const toneNames = splitArrayByN(bytes.slice(...memMap.toneNames), 8).map((bytes) => String.fromCharCode(...bytes));
 	console.assert(toneNames.length === 167);
-	const tableToneAddrs = splitArrayByN(bytes.slice(...regions.tableToneAddr), 2).map((e) => (e[1] << 8) | e[0]);
+	const tableToneAddrs = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), 2).map((e) => (e[1] << 8) | e[0]);
 	console.assert(tableToneAddrs.length === 160);
 
 	const tones = [];

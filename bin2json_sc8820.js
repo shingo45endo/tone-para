@@ -1,68 +1,70 @@
 import {splitArrayByN} from './bin2json_common.js';
 
-export function binToJsonForSC8820(bytes, regions) {
+export function binToJsonForSC8820(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
 	const json = {};
 
-	if (regions.samples) {
-		json.samples = makeSamples(bytes.slice(...regions.samples));
+	if (memMap.samples) {
+		json.samples = makeSamples(allBytes.slice(...memMap.samples));
 	}
-	if (regions.waves) {
-		json.waves = makeWaves(bytes.slice(...regions.waves));
+	if (memMap.waves) {
+		json.waves = makeWaves(allBytes.slice(...memMap.waves));
 	}
-	if (regions.tones) {
-		json.tones = makeTones(bytes.slice(...regions.tones), json);
+	if (memMap.tones) {
+		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 	}
-	if (regions.tones4) {
-		json.tones4 = makeTones4(bytes.slice(...regions.tones4), json);
+	if (memMap.tones4) {
+		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4), json);
 	}
-	if (regions.tableMaps && regions.tableBanks && regions.tableTones) {
-		const tablePrograms = makeProgTable(bytes.slice(...regions.tableMaps), bytes.slice(...regions.tableBanks), bytes.slice(...regions.tableTones));
-		if (regions.combis) {
-			json.combis = makeCombis(bytes.slice(...regions.combis), tablePrograms);
+	if (memMap.tableMaps && memMap.tableBanks && memMap.tableTones) {
+		const tablePrograms = makeProgTable(allBytes.slice(...memMap.tableMaps), allBytes.slice(...memMap.tableBanks), allBytes.slice(...memMap.tableTones));
+		if (memMap.combis) {
+			json.combis = makeCombis(allBytes.slice(...memMap.combis), tablePrograms);
 		}
 		json.programs = makePrograms(tablePrograms, json);
 	}
-	if (regions.drumSets && regions.tableDrumMaps && regions.tableDrums && regions.tableDrums2 && regions.drumNoteNames) {
-		json.drumSets = makeDrumSets(bytes.slice(...regions.drumSets), json);
+	if (memMap.drumSets && memMap.tableDrumMaps && memMap.tableDrums && memMap.tableDrums2 && memMap.drumNoteNames) {
+		json.drumSets = makeDrumSets(allBytes.slice(...memMap.drumSets), json);
 
-		const tableProgDrums = makeProgDrumTableForSC8820(bytes.slice(...regions.tableDrumMaps), bytes.slice(...regions.tableDrums), bytes.slice(...regions.tableDrums2));
+		const tableProgDrums = makeProgDrumTableForSC8820(allBytes.slice(...memMap.tableDrumMaps), allBytes.slice(...memMap.tableDrums), allBytes.slice(...memMap.tableDrums2));
 		json.progDrums = makeProgDrums(tableProgDrums, json);
 
-		addDrumNoteNames(bytes.slice(...regions.drumNoteNames), tableProgDrums, json);
+		addDrumNoteNames(allBytes.slice(...memMap.drumNoteNames), tableProgDrums, json);
 	}
 
 	return json;
 }
 
-export function binToJsonForSCD70(bytes, regions) {
+export function binToJsonForSCD70(allBytes, memMap) {
 	const json = {};
 
-	if (regions.samples) {
-		json.samples = makeSamples(bytes.slice(...regions.samples));
+	if (memMap.samples) {
+		json.samples = makeSamples(allBytes.slice(...memMap.samples));
 	}
-	if (regions.waves) {
-		json.waves = makeWaves(bytes.slice(...regions.waves));
+	if (memMap.waves) {
+		json.waves = makeWaves(allBytes.slice(...memMap.waves));
 	}
-	if (regions.tones) {
-		json.tones = makeTones(bytes.slice(...regions.tones), json);
+	if (memMap.tones) {
+		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 	}
-	if (regions.tones4) {
-		json.tones4 = makeTones4(bytes.slice(...regions.tones4), json);
+	if (memMap.tones4) {
+		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4), json);
 	}
-	if (regions.tableMaps && regions.tableBanks && regions.tableTones) {
-		const tablePrograms = makeProgTable(bytes.slice(...regions.tableMaps), bytes.slice(...regions.tableBanks), bytes.slice(...regions.tableTones));
-		if (regions.combis) {
-			json.combis = makeCombis(bytes.slice(...regions.combis), tablePrograms);
+	if (memMap.tableMaps && memMap.tableBanks && memMap.tableTones) {
+		const tablePrograms = makeProgTable(allBytes.slice(...memMap.tableMaps), allBytes.slice(...memMap.tableBanks), allBytes.slice(...memMap.tableTones));
+		if (memMap.combis) {
+			json.combis = makeCombis(allBytes.slice(...memMap.combis), tablePrograms);
 		}
 		json.programs = makePrograms(tablePrograms, json);
 	}
-	if (regions.drumSets && regions.tableDrumMaps && regions.tableDrums && regions.drumNoteNames) {
-		json.drumSets = makeDrumSets(bytes.slice(...regions.drumSets), json);
+	if (memMap.drumSets && memMap.tableDrumMaps && memMap.tableDrums && memMap.drumNoteNames) {
+		json.drumSets = makeDrumSets(allBytes.slice(...memMap.drumSets), json);
 
-		const tableProgDrums = makeProgDrumTableForSCD70(bytes.slice(...regions.tableDrumMaps), bytes.slice(...regions.tableDrums));
+		const tableProgDrums = makeProgDrumTableForSCD70(allBytes.slice(...memMap.tableDrumMaps), allBytes.slice(...memMap.tableDrums));
 		json.progDrums = makeProgDrums(tableProgDrums, json);
 
-		addDrumNoteNames(bytes.slice(...regions.drumNoteNames), tableProgDrums, json);
+		addDrumNoteNames(allBytes.slice(...memMap.drumNoteNames), tableProgDrums, json);
 	}
 
 	return json;
