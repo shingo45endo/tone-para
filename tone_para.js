@@ -8,6 +8,7 @@ import yargs from 'yargs';
 import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc8820.js';
+import {binToJsonForSC88Pro, binToJsonForSC88} from './bin2json_sc88pro.js';
 import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
@@ -24,7 +25,7 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gmega', 'gmega-lx', 'gz-70sp'],
+		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'sc-88pro', 'sc-88vl', 'sc-88', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gmega', 'gmega-lx', 'gz-70sp'],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -83,6 +84,90 @@ try {
 					drumSets:      [0x0e2ade, 0x0fe6fe],
 					combis:        [0x1012fe, 0x1017ae],
 					drumNoteNames: [0x106428, 0x13c028],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'sc-88pro':
+			{
+				const json = binToJsonForSC88Pro(bytes, {
+					tableToneAddrs:    [0x020000, 0x02e280],
+					tableDrumSetAddrs: [0x02f000, 0x02f0ba],
+					tableMaps:         [0x02f780, 0x02f800],
+					tableBanks:        [0x02f980, 0x02fc80],
+					tableDrumMaps:     [0x02f800, 0x02f880],
+					tableDrums:        [0x02fd00, 0x02ff00],
+					samplesRanges: [
+						[0x030000, 0x03fff0],
+						[0x02e3e0, 0x02effc],
+					],
+					waves: [0x040000, 0x04a8dc],
+					drumSetsRanges: [
+						[0x01f5e8, 0x020000],	// "STANDARD 1" - "STANDARD 2"
+						[0x04d500, 0x04fd60],	// "STANDARD 3" - "TR-808"
+						[0x050000, 0x05f240],	// "DANCE" - "SFX 2 kit"
+					],
+					tonesRanges: [
+						[0x05f300, 0x05ff50],	// "Piano 1" - "EG+Rhodes 2"
+						[0x060000, 0x06ffa8],	// "Piano 3w" - "Sync Bass"
+						[0x070000, 0x07fff6],	// "MG 5th Bass" - "Syn.Calliope"
+						[0x080000, 0x08fff8],	// "Vent Synth" - "Gt.FretNoise"
+						[0x090000, 0x09ffc2],	// "Gt.Cut Noise" - "DazedGuitar"
+						[0x0a0000, 0x0affba],	// "FeedbackGt." - "Real Tom 4"
+						[0x0b0000, 0x0bffa6],	// "Open HiHat2" - "rev.jgl_bd2"
+						[0x0c0000, 0x0c2dae],	// "rev.tech_bd2" - "XG Scratch2"
+					],
+					combis: [0x0c2dc0, 0x0c3018],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-88vl':
+			{
+				const json = binToJsonForSC88(bytes, {
+					tableToneAddrs:    [0x020000, 0x023900],
+					tableDrumSetAddrs: [0x02b550, 0x02b598],
+					tableBanks:        [0x02fc00, 0x02fd00],
+					tableDrums:        [0x02fd00, 0x02fe00],
+					drumSetsRanges: [
+						[0x023c30, 0x02b550],
+					],
+					waves: [0x030000, 0x03606c],
+					samplesRanges: [
+						[0x036100, 0x03f714],
+					],
+					tonesRanges: [
+						[0x040000, 0x04ff78],	// "Piano 1" - "5th Saw Wave"
+						[0x050000, 0x05fee2],	// "Big Fives" - "Brass 2"
+						[0x060000, 0x06ffa8],	// "Syn.Brass 1" - "Lite Tom 4"
+						[0x070000, 0x074e36],	// "Brs Chh" - "FlyingMonstr"
+					],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-88':
+			{
+				const json = binToJsonForSC88(bytes, {
+					tableToneAddrs:    [0x020000, 0x023900],
+					tableDrumSetAddrs: [0x02b550, 0x02b598],
+					tableBanks:        [0x02fc00, 0x02fd00],
+					tableDrums:        [0x02fd00, 0x02fe00],
+					drumSetsRanges: [
+						[0x023c30, 0x02b550],
+					],
+					waves: [0x030000, 0x03606c],
+					samplesRanges: [
+						[0x036100, 0x03f714],
+					],
+					tonesRanges: [
+						[0x040000, 0x04ff78],	// "Piano 1" - "5th Saw Wave"
+						[0x050000, 0x05a728],	// "Big Fives" - "Explosion"
+						[0x05a9bc, 0x05fec0],	// "Piano 1" - "Brass 1"
+						[0x060000, 0x06ffa8],	// "Brass 2" - "Brush Swirl"
+						[0x070000, 0x074f80],	// "Lite Tom 4" - "FlyingMonstr"
+					],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -446,6 +531,7 @@ try {
 			}
 			break;
 
+		case 'sc-88pro':
 		case 'cm-32l':
 		case 'tg300':
 		case 'gmega':

@@ -64,3 +64,7 @@ export function isValidRegion(regions) {
 
 	return true;
 }
+
+export function verifyData(condition) {
+	console.assert(condition);
+}
