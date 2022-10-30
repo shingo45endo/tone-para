@@ -1,4 +1,4 @@
-import {splitArrayByN} from './bin2json_common.js';
+import {splitArrayByN, verifyData} from './bin2json_common.js';
 
 export function binToJsonForSC8820(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -88,7 +88,7 @@ function makeSamples(bytes) {
 //			rate:  sampleBytes.slice( 4,  6).reduce((p, c) => (p << 8) | c, 0),
 //			rate2: sampleBytes.slice(14, 16).reduce((p, c) => (p << 8) | c, 0),
 		};
-//		console.assert(sample.end >= sample.begin);
+//		verifyData(sample.end >= sample.begin);
 
 		samples.push(sample);
 	}
@@ -151,7 +151,7 @@ function makeTones(bytes, json) {
 
 		const name = String.fromCharCode(...commonBytes.slice(0, 12));
 		const bits = commonBytes[22];
-		console.assert(bits === 0b01 || bits === 0b11);
+		verifyData(bits === 0b01 || bits === 0b11);
 
 		const tone = {
 			toneNo, name,
@@ -166,8 +166,8 @@ function makeTones(bytes, json) {
 				waveNo,
 				bytes: [...voiceBytes],
 			};
-			console.assert(voice.bytes[4] === 64);
-			console.assert([5, 7, 20, 37, 38, 39, 40].every((e) => voice.bytes[e] === 0));
+			verifyData(voice.bytes[4] === 64);
+			verifyData([5, 7, 20, 37, 38, 39, 40].every((e) => voice.bytes[e] === 0));
 			if ((bits & (1 << i)) !== 0) {
 				voice.wave = {
 					name: json.waves[waveNo].name,

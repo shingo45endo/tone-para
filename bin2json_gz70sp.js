@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData} from './bin2json_common.js';
 
 const toneNames = [
 	'PIANO 1',
@@ -349,7 +349,7 @@ function makeTones(bytes, json) {
 		for (let i = 0; i < numVoices; i++) {
 			const voiceBytes = voicePackets[index];
 			const view = new DataView(voiceBytes.buffer);
-			console.assert(voiceBytes[0] === 0x00 && voiceBytes[6] === 0x00 && voiceBytes[8] === 0x00 && voiceBytes[10] === 0x00 && voiceBytes[12] === 0x00 && view.getUint16(14, true) === 0x0000 && view.getUint16(16, true) === 0x7000 && voiceBytes[24] === 0x00 && voiceBytes[26] === 0x00);
+			verifyData(voiceBytes[0] === 0x00 && voiceBytes[6] === 0x00 && voiceBytes[8] === 0x00 && voiceBytes[10] === 0x00 && voiceBytes[12] === 0x00 && view.getUint16(14, true) === 0x0000 && view.getUint16(16, true) === 0x7000 && voiceBytes[24] === 0x00 && voiceBytes[26] === 0x00);
 
 			const sampleTableNo = voiceBytes[1];
 			const sampleBase = view.getUint16(2, true) & 0x0fff;
@@ -402,7 +402,7 @@ function makeSamples(bytes, json) {
 			}
 		} else {	// drum set
 			const drumSet = (toneNo - 128) & 0x07;
-			console.assert(tone.voices.length === 1);
+			verifyData(tone.voices.length === 1);
 			const sampleNos = tone.voices[0]._sampleNos;
 			for (let noteNo = 0; noteNo < sampleNos.length; noteNo++) {
 				const sampleNo = sampleNos[noteNo];
@@ -422,7 +422,7 @@ function makeSamples(bytes, json) {
 	for (let sampleNo = 0; sampleNo < samplePackets.length; sampleNo++) {
 		const sampleBytes = samplePackets[sampleNo];
 		const view = new DataView(sampleBytes.buffer);
-		console.assert(sampleBytes[6] === 0x00 && sampleBytes[7] === 0x00);
+		verifyData(sampleBytes[6] === 0x00 && sampleBytes[7] === 0x00);
 
 		const sample = {
 			sampleNo,

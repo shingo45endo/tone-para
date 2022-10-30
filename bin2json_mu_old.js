@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import {splitArrayByN, removePrivateProp} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData} from './bin2json_common.js';
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
@@ -254,7 +254,7 @@ function makeTones(bytes, props, json) {
 			commonBytes = props.convertCommonBytes(commonBytes);
 		}
 		const bits = commonBytes[0x00];
-		console.assert(bits === 0b01 || bits === 0b11);
+		verifyData(bits === 0b01 || bits === 0b11);
 		const numVoices = {0b01: 1, 0b11: 2}[bits];
 		let voicePackets = splitArrayByN(bytes.slice(index + 10, index + 10 + props.voicePacketSize * numVoices), props.voicePacketSize);
 		if (props.convertVoicePacket) {
@@ -361,7 +361,7 @@ function makeProgTable(bytes, memMap, json, addrSize) {
 	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
 		const offset = e.reduce((p, c) => (p << 8) | c, 0) * ((addrSize === 2) ? 2 : 1);
 		const tone = json.tones.filter((tone) => offset === tone._offset);
-		console.assert(tone.length === 1);
+		verifyData(tone.length === 1);
 		return tone[0].toneNo;
 	}));
 

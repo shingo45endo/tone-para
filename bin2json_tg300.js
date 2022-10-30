@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData} from './bin2json_common.js';
 
 export function binToJsonForTG300(allBytes, memMap) {
 	const json = {};
@@ -47,11 +47,11 @@ function makeTones(bytes, json) {
 	let toneNo = 0;
 	while (index < bytes.length) {
 		const numVoices = bytes[index + 0x05] + 1;
-		console.assert(numVoices === 1 || numVoices === 2);
+		verifyData(numVoices === 1 || numVoices === 2);
 		const size = 16 + 80 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 16);
-		console.assert(commonBytes[15] === 0x00);
+		verifyData(commonBytes[15] === 0x00);
 		const voicePackets = splitArrayByN(toneBytes.slice(16), 80);
 
 		const name = String.fromCharCode(...commonBytes.slice(7, 15));
@@ -142,7 +142,7 @@ function makeProgTable(allBytes, memMap, json) {
 		}
 		const offset = (e[0] << 8) | e[1];
 		const tone = json.tones.filter((tone) => offset === tone._offset);
-		console.assert(tone.length === 1);
+		verifyData(tone.length === 1);
 		return tone[0].toneNo;
 	}));
 

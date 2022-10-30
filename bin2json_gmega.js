@@ -1,6 +1,6 @@
 import {splitArrayByN, isValidRange} from './bin2json_common.js';
 
-const toneWaveNames = [
+const waveNames = [
 	'SIN',
 	'TRIANGLE',
 	'PULSE',
@@ -258,7 +258,7 @@ const toneWaveNames = [
 	'METAL ECHO',
 	'GUNSHOT',
 ];
-console.assert(toneWaveNames.length === 256);
+console.assert(waveNames.length === 256);
 
 const drumToneWaveNames = [
 	'BASIC 1',
@@ -527,7 +527,7 @@ export function binToJsonForGMega(files, memMap) {
 	const json = {};
 
 	// Waves
-	json.waves = toneWaveNames.map((name, waveNo) => ({waveNo, name}));
+	json.waves = waveNames.map((name, waveNo) => ({waveNo, name}));
 	json.drumWaves = drumToneWaveNames.map((name, drumWaveNo) => ({drumWaveNo, name}));
 
 	// Tones
@@ -570,7 +570,7 @@ function makeTones(files, memMap, kind) {
 				waveNo,
 				bytes: [...toneParamsBytes],
 				wave: {
-					name: toneWaveNames[waveNo],
+					name: waveNames[waveNo],
 					$ref: `#/waves/${waveNo}`,
 				},
 			};

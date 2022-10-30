@@ -1,4 +1,4 @@
-import {splitArrayByN, makeAddress4byteBE} from './bin2json_common.js';
+import {splitArrayByN, makeAddress4byteBE, verifyData} from './bin2json_common.js';
 
 export function binToJsonForNS5R(files, memMap) {
 	const json = {};
@@ -86,7 +86,7 @@ function makeDrums(bytes) {
 	const drums = [];
 	for (let drumNo = 0; drumNo < drumPackets.length; drumNo++) {
 		const drumBytes = drumPackets[drumNo];
-		console.assert(drumBytes[10] === 2);
+		verifyData(drumBytes[10] === 2);
 
 		const commonBytes = drumBytes.slice(0, 14);
 		const voiceBytes = drumBytes.slice(14);

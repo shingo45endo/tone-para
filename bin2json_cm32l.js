@@ -1,4 +1,4 @@
-import {splitArrayByN} from './bin2json_common.js';
+import {splitArrayByN, verifyData} from './bin2json_common.js';
 
 const sampleNames = [
 	'Acoustic Bass Drum',
@@ -289,7 +289,7 @@ function makeTones(bytes, json) {
 	while (index < bytes.length) {
 		const numVoices = [0, 1,  , 2,  ,  ,  , 3,  ,  ,  ,  ,  ,  ,  , 4][bytes[index + 0x0c]];
 //		const numVoices = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4][bytes[index + 0x0c]];
-		console.assert(0 <= numVoices && numVoices <= 4);
+		verifyData(0 <= numVoices && numVoices <= 4);
 		const size = 14 + 58 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);

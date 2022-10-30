@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import {splitArrayByN, makeAddress4byteBE, removePrivateProp} from './bin2json_common.js';
+import {splitArrayByN, makeAddress4byteBE, removePrivateProp, verifyData} from './bin2json_common.js';
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
@@ -36,12 +36,12 @@ function makeTones(bytes, json) {
 	let toneNo = 0;
 	while (index < bytes.length) {
 		const bits = bytes[index];
-		console.assert(bits === 0b0001 || bits === 0b0011 || bits === 0b0111 || bits === 0b1111);
+		verifyData(bits === 0b0001 || bits === 0b0011 || bits === 0b0111 || bits === 0b1111);
 		const numVoices = {0b0001: 1, 0b0011: 2, 0b0111: 3, 0b1111: 4}[bits];
 		const size = 14 + 84 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
-		console.assert(commonBytes[12] === 0 && commonBytes[13] === 127);
+		verifyData(commonBytes[12] === 0 && commonBytes[13] === 127);
 		const voicePackets = splitArrayByN(toneBytes.slice(14), 84);
 
 		const name = String.fromCharCode(...commonBytes.slice(2, 12));
@@ -96,11 +96,11 @@ function makeDrumSets(bytes, memMap) {
 			}
 
 			const index = offset / 42;
-			console.assert(Number.isInteger(index));
+			verifyData(Number.isInteger(index));
 			const note = {
 				bytes: [...drumParamPackets[index]],
 			};
-			console.assert(note.bytes[8] === 0 && note.bytes[16] === 64 && note.bytes[17] === 64 && note.bytes[18] === 12 && note.bytes[19] === 54);
+			verifyData(note.bytes[8] === 0 && note.bytes[16] === 64 && note.bytes[17] === 64 && note.bytes[18] === 12 && note.bytes[19] === 54);
 			drumSet.notes[noteNo] = note;
 		}
 
@@ -223,7 +223,7 @@ function makeProgTable(bytes, memMap, json) {
 	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), 512).map((packet) => splitArrayByN(packet, 4).map((e) => {
 		const offset = ((e[0] << 24) | (e[1] << 16) | (e[2] << 8) | e[3]) * 2;
 		const tone = json.tones.filter((tone) => offset === tone._offset);
-		console.assert(tone.length === 1);
+		verifyData(tone.length === 1);
 		return tone[0].toneNo;
 	}));
 
