@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, isValidRegion, verifyData} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, isValidRange, verifyData} from './bin2json_common.js';
 
 export function binToJsonForSC88Pro(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -63,7 +63,7 @@ function makeBasicJson(allBytes, memMap) {
 	json.samples = makeSamples(allBytes, memMap.samplesRanges);
 
 	// Waves
-	console.assert(isValidRegion(memMap.waves));
+	console.assert(isValidRange(memMap.waves));
 	json.waves = makeWaves(allBytes.slice(...memMap.waves), json);
 
 	// Tones
@@ -77,7 +77,7 @@ function makeBasicJson(allBytes, memMap) {
 }
 
 function makeSamples(allBytes, sampleRanges) {
-	console.assert(allBytes?.length && sampleRanges?.every((e) => isValidRegion(e)));
+	console.assert(allBytes?.length && sampleRanges?.every((e) => isValidRange(e)));
 
 	const samples = [];
 	let sampleNo = 0;
@@ -167,7 +167,7 @@ function makeWaves(bytes, json) {
 }
 
 function makeTones(allBytes, tonesRanges, json) {
-	console.assert(allBytes?.length && tonesRanges?.every((e) => isValidRegion(e)) && Array.isArray(json?.waves));
+	console.assert(allBytes?.length && tonesRanges?.every((e) => isValidRange(e)) && Array.isArray(json?.waves));
 
 	const tones = [];
 	let toneNo = 0;
@@ -221,7 +221,7 @@ function makeTones(allBytes, tonesRanges, json) {
 function makeDrumSets(allBytes, memMap, json) {
 	console.assert(allBytes?.length && memMap && json?.tones);
 
-	console.assert(Array.isArray(memMap.drumSetsRanges) && memMap.drumSetsRanges.every((e) => isValidRegion(e)));
+	console.assert(Array.isArray(memMap.drumSetsRanges) && memMap.drumSetsRanges.every((e) => isValidRange(e)));
 	const drumSetInstances = [];
 	memMap.drumSetsRanges.forEach(([rangeBegin, rangeEnd]) => {
 		const drumSetPackets = splitArrayByN(allBytes.slice(rangeBegin, rangeEnd), 1292);
@@ -268,7 +268,7 @@ function makeDrumSets(allBytes, memMap, json) {
 	});
 
 	// Adds proper Drum Set No. from addresses of each Drum Sets.
-	console.assert(isValidRegion(memMap.tableDrumSetAddrs));
+	console.assert(isValidRange(memMap.tableDrumSetAddrs));
 	const tableDrumSetAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumSetAddrs), 3).map((e) => ((e[0] & 0x0f) << 16) | (e[1] << 8) | e[2]);
 	const drumSets = tableDrumSetAddrs.map((drumSetAddr, drumSetNo) => {
 		const drumSet = drumSetInstances.find((drumSet) => drumSetAddr === drumSet._addr);
@@ -281,7 +281,7 @@ function makeDrumSets(allBytes, memMap, json) {
 }
 
 function makeCombis(allBytes, combisRange) {
-	console.assert(allBytes?.length && isValidRegion(combisRange));
+	console.assert(allBytes?.length && isValidRange(combisRange));
 
 	const addrBase = combisRange[0];
 	const combiPackets = splitArrayByN(allBytes.slice(...combisRange), 24);
@@ -310,15 +310,15 @@ function makeProgTableForSC88Pro(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableMaps[bankL] => mapNo
-	console.assert(isValidRegion(memMap.tableMaps));
+	console.assert(isValidRange(memMap.tableMaps));
 	const tableMaps = allBytes.slice(...memMap.tableMaps);
 
 	// tableBanks[mapNo][bankM] => bankNo
-	console.assert(isValidRegion(memMap.tableBanks));
+	console.assert(isValidRange(memMap.tableBanks));
 	const tableBanks = splitArrayByN(allBytes.slice(...memMap.tableBanks), 128);
 
 	// tableToneAddrs[bankNo][prog] => toneAddr
-	console.assert(isValidRegion(memMap.tableToneAddrs));
+	console.assert(isValidRange(memMap.tableToneAddrs));
 	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 3 * 128).map((e) => splitArrayByN(e, 3).map(([b0, b1, b2]) => (b0 << 16) | (b1 << 8) | b2));
 
 	return ((tableMaps, tableBanks, tableToneAddrs) => (prog, bankM, bankL) => {
@@ -343,11 +343,11 @@ function makeProgTableForSC88(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableBanks[mapNo][bankM] => bankNo
-	console.assert(isValidRegion(memMap.tableBanks));
+	console.assert(isValidRange(memMap.tableBanks));
 	const tableBanks = splitArrayByN(allBytes.slice(...memMap.tableBanks), 128);
 
 	// tableToneAddrs[bankNo][prog] => toneAddr
-	console.assert(isValidRegion(memMap.tableToneAddrs));
+	console.assert(isValidRange(memMap.tableToneAddrs));
 	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 3 * 128).map((e) => splitArrayByN(e, 3).map(([b0, b1, b2]) => (b0 << 16) | (b1 << 8) | b2));
 
 	return ((tableBanks, tableToneAddrs) => (prog, bankM, bankL) => {
@@ -368,11 +368,11 @@ function makeProgDrumTableForSC88Pro(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableDrumMaps[bankL] => mapNo
-	console.assert(isValidRegion(memMap.tableDrumMaps));
+	console.assert(isValidRange(memMap.tableDrumMaps));
 	const tableDrumMaps = allBytes.slice(...memMap.tableDrumMaps);
 
 	// tableDrums[mapNo][prog] => drumSetNo
-	console.assert(isValidRegion(memMap.tableDrums));
+	console.assert(isValidRange(memMap.tableDrums));
 	const tableDrums = splitArrayByN(allBytes.slice(...memMap.tableDrums), 128);
 
 	return ((tableDrumMaps, tableDrums) => (prog, bankM, bankL) => {
@@ -393,7 +393,7 @@ function makeProgDrumTableForSC88(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableDrums[mapNo][prog] => drumSetNo
-	console.assert(isValidRegion(memMap.tableDrums));
+	console.assert(isValidRange(memMap.tableDrums));
 	const tableDrums = splitArrayByN(allBytes.slice(...memMap.tableDrums), 128);
 
 	return ((tableDrums) => (prog, bankM, bankL) => {

@@ -53,11 +53,11 @@ export function removePrivateProp(json) {
 	}
 }
 
-export function isValidRegion(regions) {
-	if (!Array.isArray(regions) || regions.length !== 2 || !regions.every((e) => Number.isInteger(e))) {
+export function isValidRange(ranges) {
+	if (!Array.isArray(ranges) || ranges.length !== 2 || !ranges.every((e) => Number.isInteger(e))) {
 		return false;
 	}
-	const [begin, end] = regions;
+	const [begin, end] = ranges;
 	if (begin > end) {
 		return false;
 	}

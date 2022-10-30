@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRegion} from './bin2json_common.js';
+import {splitArrayByN, isValidRange} from './bin2json_common.js';
 
 const drumToneNames = [
 	'BOB BD',
@@ -133,7 +133,7 @@ const drumToneNames = [
 console.assert(drumToneNames.length === 128);
 
 export function binToJsonForGMegaLx(bytes, regions) {
-	console.assert(bytes && regions && Object.values(regions).every((e) => isValidRegion(e)));
+	console.assert(bytes && regions && Object.values(regions).every((e) => isValidRange(e)));
 
 	const json = {};
 

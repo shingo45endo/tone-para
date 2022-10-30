@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRegion} from './bin2json_common.js';
+import {splitArrayByN, isValidRange} from './bin2json_common.js';
 
 const toneWaveNames = [
 	'SIN',
@@ -522,7 +522,7 @@ console.assert(drumToneWaveNames.length === 256);
 
 export function binToJsonForGMega(files, regions) {
 	console.assert(files?.PROG && files?.PCM);
-	console.assert(regions && Object.values(regions).every((e) => isValidRegion(e)));
+	console.assert(regions && Object.values(regions).every((e) => isValidRange(e)));
 
 	const json = {};
 
@@ -628,7 +628,7 @@ function makeDrumTones(files, regions, kind) {
 function makeDrumSets(bytes, json) {
 	const drumSetPackets = splitArrayByN(bytes, 128);
 
-	console.assert(Array.isArray(json?.tonesGM) && Array.isArray(json?.drumTonesGM));
+	console.assert(Array.isArray(json.tonesGM) && Array.isArray(json.drumTonesGM));
 	const drumSets = [];
 	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
 		const notes = drumSetBytes.reduce((results, drumToneNo, noteNo) => {
