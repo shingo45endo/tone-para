@@ -131,7 +131,7 @@ const toneNames = [
 	'GunShot',
 ];
 
-const toneWaveNames = [
+const waveNames = [
 	'A.Piano 1',
 	'A.Piano 2',
 	'E.Piano 1',
@@ -290,12 +290,12 @@ export function midToJsonForAG10(files) {
 			const voiceNum = (commonBytes[0] === 0x01) ? 2 : 1;
 			const voices = [];
 			for (let i = 0; i < voiceNum; i++) {
-				const toneWaveNo = commonBytes[1 + i * 2];
+				const waveNo = commonBytes[1 + i * 2];
 				const voice = {
-					toneWaveNo,
-					toneWave: {
-						name: toneWaveNames[toneWaveNo],
-						$ref: `#/toneWaves/${toneWaveNo}`,
+					waveNo,
+					wave: {
+						name: waveNames[waveNo],
+						$ref: `#/waves/${waveNo}`,
 					},
 					octave: commonBytes[2 + i * 2],
 					bytes: [...toneBytes.slice(26 + i * 44, 70 + i * 44)],
@@ -318,7 +318,7 @@ export function midToJsonForAG10(files) {
 	}
 
 	return {
-		toneWaves: toneWaveNames.map((name, toneWaveNo) => ({toneWaveNo, name})),
+		waves: waveNames.map((name, waveNo) => ({waveNo, name})),
 		tones,
 	};
 }

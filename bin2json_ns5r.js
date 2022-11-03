@@ -7,18 +7,18 @@ export function binToJsonForNS5R(files, memMap) {
 
 	// Waves
 	console.assert(isValidRange(memMap.waveNames));
-	json.toneWaves = makeWaves(files.PCM.slice(...memMap.waveNames));
+	json.waves = makeWaves(files.PCM.slice(...memMap.waveNames));
 
 	// Drum Samples
 	console.assert(isValidRange(memMap.drumSamples));
-	json.drumWaves = makeDrumSamples(files.PCM.slice(...memMap.drumSamples));
+	json.drumSamples = makeDrumSamples(files.PCM.slice(...memMap.drumSamples));
 
 	// Drum Sets
 	json.drumSets = makeDrumSets(files.PCM, memMap, json);
 
 	// Drum Tones
 	console.assert(isValidRange(memMap.drumTones));
-	json.drums = makeDrumTones(files.PROG.slice(...memMap.drumTones));
+	json.drumTones = makeDrumTones(files.PROG.slice(...memMap.drumTones));
 
 	// Tones
 	console.assert(isValidRange(memMap.tones));
@@ -40,7 +40,7 @@ function makeWaves(bytes) {
 	const waveNamePackets = splitArrayByN(bytes, 10);
 	waveNamePackets.forEach((waveNameBytes, waveNo) => {
 		const wave = {
-			toneWaveNo: waveNo,
+			waveNo,
 			name: String.fromCharCode(...waveNameBytes),
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(wave.name));
@@ -57,7 +57,7 @@ function makeDrumSamples(bytes) {
 	const drumSamplePackets = splitArrayByN(bytes, 22);
 	drumSamplePackets.forEach((drumSampleBytes, drumSampleNo) => {
 		const drumSample = {
-			drumWaveNo: drumSampleNo,
+			drumSampleNo,
 			name: String.fromCharCode(...drumSampleBytes.slice(0, 10)),
 //			begin: drumSampleBytes.slice(13, 16).reduce((p, c) => (p << 8) | c, 0),
 //			loop:  drumSampleBytes.slice(16, 19).reduce((p, c) => (p << 8) | c, 0),
@@ -74,7 +74,7 @@ function makeDrumSamples(bytes) {
 }
 
 function makeDrumSets(pcmBytes, memMap, json) {
-	console.assert(pcmBytes?.length && memMap && Array.isArray(json?.drumWaves));
+	console.assert(pcmBytes?.length && memMap && Array.isArray(json?.drumSamples));
 
 	console.assert(isValidRange(memMap.drumSetNames));
 	const drumNames = splitArrayByN(pcmBytes.slice(...memMap.drumSetNames), 10).map((e) => String.fromCharCode(...e));
@@ -106,13 +106,13 @@ function makeDrumSets(pcmBytes, memMap, json) {
 					return;
 				}
 
-				const drumWaveNo = (drumParamBytes[0] << 8) | drumParamBytes[1];
+				const drumSampleNo = (drumParamBytes[0] << 8) | drumParamBytes[1];
 				const note = {
-					drumWaveNo,
+					drumSampleNo,
 					bytes: [...drumParamPackets[i]],
-					drumWave: {
-						name: json.drumWaves[drumWaveNo].name,
-						$ref: `#/drumWaves/${drumWaveNo}`,
+					drumSample: {
+						name: json.drumSamples[drumSampleNo].name,
+						$ref: `#/drumSamples/${drumSampleNo}`,
 					},
 				};
 				const noteNo = 12 + i;
@@ -141,7 +141,7 @@ function makeDrumTones(bytes) {
 			bytes: [...voiceBytes],
 		};
 		const drumTone = {
-			drumNo: drumToneNo,
+			drumToneNo,
 			name: String.fromCharCode(...commonBytes.slice(0, 10)),
 			commonBytes: [...commonBytes],
 			voices: [voice],
@@ -155,7 +155,7 @@ function makeDrumTones(bytes) {
 }
 
 function makeTones(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json.toneWaves) && Array.isArray(json.drumSets));
+	console.assert(bytes?.length && Array.isArray(json.waves) && Array.isArray(json.drumSets));
 
 	const tones = [];
 	let index = 0;
@@ -178,10 +178,10 @@ function makeTones(bytes, json) {
 				{
 					const voice = {
 						bytes: [...voiceBytes],
-						toneWaveNo: no,
-						toneWave: {
-							name: json.toneWaves[no].name,
-							$ref: `#/toneWaves/${no}`,
+						waveNo: no,
+						wave: {
+							name: json.waves[no].name,
+							$ref: `#/waves/${no}`,
 						},
 					};
 					voices.push(voice);
@@ -225,7 +225,7 @@ function makeTones(bytes, json) {
 }
 
 function makeCombis(bytes, json) {
-	console.assert(bytes?.length);
+	console.assert(bytes?.length && Array.isArray(json.tones) && Array.isArray(json.drumTones));
 
 	const combis = [];
 	let index = 0;
@@ -240,7 +240,7 @@ function makeCombis(bytes, json) {
 			const addr = makeAddress4byteBE(toneBytes.slice(14, 18));
 
 			const toneRef = json.tones.find((tone) => tone._addr === addr);
-			const drumToneRef = json.drums.find((drumTone) => drumTone._addr === addr);
+			const drumToneRef = json.drumTones.find((drumTone) => drumTone._addr === addr);
 
 			if (toneRef) {
 				const tone = {
@@ -254,10 +254,10 @@ function makeCombis(bytes, json) {
 				tones.push(tone);
 			} else if (drumToneRef) {
 				const drumTone = {
-					drumNo: drumToneRef.drumNo,
-					drum: {
+					drumToneNo: drumToneRef.drumToneNo,
+					drumTone: {
 						name: drumToneRef.name,
-						$ref: `#/drums/${drumToneRef.drumNo}`,
+						$ref: `#/drumTones/${drumToneRef.drumToneNo}`,
 					},
 					bytes: [...toneBytes],
 				};
