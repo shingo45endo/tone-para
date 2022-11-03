@@ -1,9 +1,9 @@
 import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
 export const [binToJsonForSC8820, binToJsonForSCD70] = [
-	makeProgDrumTableForSC8820,
-	makeProgDrumTableForSCD70,
-].map((makeProgDrumTable) => {
+	makeTableOfDrumMapForSC8820,
+	makeTableOfDrumMapForSCD70,
+].map((makeTableOfDrumMap) => {
 	return (allBytes, memMap) => {
 		console.assert(allBytes?.length && memMap);
 
@@ -13,13 +13,13 @@ export const [binToJsonForSC8820, binToJsonForSCD70] = [
 			tones: null,
 			tones4: null,
 			combis: null,
-			programs: null,
+			toneMaps: null,
 			drumSets: null,
-			progDrums: null,
+			drumMaps: null,
 		};
 
-		const tablePrograms = makeProgTable(allBytes, memMap);
-		const tableProgDrums = makeProgDrumTable(allBytes, memMap);
+		const tableToneMap = makeTableOfToneMap(allBytes, memMap);
+		const tableDrumMap = makeTableOfDrumMap(allBytes, memMap);
 
 		// Samples
 		console.assert(isValidRange(memMap.samples));
@@ -39,17 +39,17 @@ export const [binToJsonForSC8820, binToJsonForSCD70] = [
 
 		// Legato
 		console.assert(isValidRange(memMap.combis));
-		json.combis = makeCombis(allBytes.slice(...memMap.combis), tablePrograms);
+		json.combis = makeCombis(allBytes.slice(...memMap.combis), tableToneMap);
 
 		// Drum Sets
 		console.assert(isValidRange(memMap.drumSets));
-		json.drumSets = makeDrumSets(allBytes, memMap, tableProgDrums, json);
+		json.drumSets = makeDrumSets(allBytes, memMap, tableDrumMap, json);
 
 		// Tone Map
-		json.programs = makePrograms(tablePrograms, json);
+		json.toneMaps = makeToneMaps(tableToneMap, json);
 
 		// Drum Map
-		json.progDrums = makeProgDrums(tableProgDrums, json);
+		json.drumMaps = makeDrumMaps(tableDrumMap, json);
 
 		return json;
 	};
@@ -200,8 +200,8 @@ function makeTones4(bytes, json) {
 	return tones4;
 }
 
-function makeCombis(bytes, tablePrograms) {
-	console.assert(bytes?.length && tablePrograms);
+function makeCombis(bytes, tableToneMap) {
+	console.assert(bytes?.length && tableToneMap);
 
 	const combis = [];
 	const combiPackets = splitArrayByN(bytes, 24);
@@ -218,7 +218,7 @@ function makeCombis(bytes, tablePrograms) {
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));
 		for (const tone of combi.tones) {
-			const toneNo = tablePrograms(tone.prog, tone.bankM, tone.bankL) & 0x1fff;
+			const toneNo = tableToneMap(tone.prog, tone.bankM, tone.bankL) & 0x1fff;
 			tone.toneNo = toneNo;
 			tone.tone = {
 				$ref: `#/tones/${toneNo}`,
@@ -230,8 +230,8 @@ function makeCombis(bytes, tablePrograms) {
 	return combis;
 }
 
-function makeDrumSets(allBytes, memMap, tableProgDrums, json) {
-	console.assert(allBytes?.length && memMap && tableProgDrums && Array.isArray(json?.tones));
+function makeDrumSets(allBytes, memMap, tableDrumMap, json) {
+	console.assert(allBytes?.length && memMap && tableDrumMap && Array.isArray(json?.tones));
 
 	const drumSets = [];
 	console.assert(isValidRange(memMap.drumSets));
@@ -283,7 +283,7 @@ function makeDrumSets(allBytes, memMap, tableProgDrums, json) {
 		const [bankL, prog1, noteNo] = drumNoteNameBytes.slice(1, 4);
 		const name = String.fromCharCode(...drumNoteNameBytes.slice(4, 14 /* 16 */));	// Note: Some drum names have unnecessary NUL terminator at the end of string.
 
-		const drumSetNo = tableProgDrums(prog1 - 1, 0, bankL);
+		const drumSetNo = tableDrumMap(prog1 - 1, 0, bankL);
 		const drumSet = drumSets[drumSetNo];
 		if (drumSet.notes[noteNo]) {
 			drumSet.notes[noteNo].name = name;
@@ -300,16 +300,16 @@ const seqBankL = [
 	...[...new Array(128)].map((_, i) => i).slice(5),	// 5, 6, ..., 127
 ];
 
-function makePrograms(tablePrograms, json) {
-	console.assert(tablePrograms && Array.isArray(json?.tones) && Array.isArray(json?.tones4) && Array.isArray(json?.combis));
+function makeToneMaps(tableToneMap, json) {
+	console.assert(tableToneMap && Array.isArray(json?.tones) && Array.isArray(json?.tones4) && Array.isArray(json?.combis));
 
-	const programs = [];
+	const toneMaps = [];
 	for (const bankL of seqBankL) {
 		for (let prog = 0; prog < 128; prog++) {
 			for (let bankM = 0; bankM < 125; bankM++) {
-				const program = makeProgram(prog, bankM, bankL);
-				if (program) {
-					programs.push(program);
+				const toneProg = makeToneProg(prog, bankM, bankL);
+				if (toneProg) {
+					toneMaps.push(toneProg);
 				}
 			}
 		}
@@ -317,18 +317,18 @@ function makePrograms(tablePrograms, json) {
 	for (const bankL of seqBankL) {
 		for (let bankM = 125; bankM < 128; bankM++) {
 			for (let prog = 0; prog < 128; prog++) {
-				const program = makeProgram(prog, bankM, bankL);
-				if (program) {
-					programs.push(program);
+				const toneProg = makeToneProg(prog, bankM, bankL);
+				if (toneProg) {
+					toneMaps.push(toneProg);
 				}
 			}
 		}
 	}
 
-	return programs;
+	return toneMaps;
 
-	function makeProgram(prog, bankM, bankL) {
-		const tmp16 = tablePrograms(prog, bankM, bankL);
+	function makeToneProg(prog, bankM, bankL) {
+		const tmp16 = tableToneMap(prog, bankM, bankL);
 		if (tmp16 === 0xffff) {
 			return null;
 		}
@@ -369,18 +369,18 @@ function makePrograms(tablePrograms, json) {
 	}
 }
 
-function makeProgDrums(tableProgDrums, json) {
-	console.assert(tableProgDrums && Array.isArray(json?.drumSets));
+function makeDrumMaps(tableDrumMap, json) {
+	console.assert(tableDrumMap && Array.isArray(json?.drumSets));
 
-	const progDrums = [];
+	const drumMaps = [];
 	for (const bankL of seqBankL) {
 		for (let prog = 0; prog < 128; prog++) {
-			const drumNo = tableProgDrums(prog, 0, bankL);
+			const drumNo = tableDrumMap(prog, 0, bankL);
 			if (drumNo === 0xffff) {
 				continue;
 			}
 
-			const progDrum = {
+			const drumProg = {
 				bankL, prog,
 				drumNo,
 				drumSet: {
@@ -388,14 +388,14 @@ function makeProgDrums(tableProgDrums, json) {
 					$ref: `#/drumSets/${drumNo}`,
 				},
 			};
-			progDrums.push(progDrum);
+			drumMaps.push(drumProg);
 		}
 	}
 
-	return progDrums;
+	return drumMaps;
 }
 
-function makeProgTable(allBytes, memMap) {
+function makeTableOfToneMap(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableMaps[bankL] => mapNo
@@ -432,7 +432,7 @@ function makeProgTable(allBytes, memMap) {
 	})(tableMaps, tableBanks, tableTones);
 }
 
-function makeProgDrumTableForSC8820(allBytes, memMap) {
+function makeTableOfDrumMapForSC8820(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableDrumMaps[bankL] => mapNo
@@ -461,7 +461,7 @@ function makeProgDrumTableForSC8820(allBytes, memMap) {
 	})(tableDrumMaps, tableDrums, tableDrums2);
 }
 
-function makeProgDrumTableForSCD70(allBytes, memMap) {
+function makeTableOfDrumMapForSCD70(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	// tableDrumMaps[bankL] => mapNo

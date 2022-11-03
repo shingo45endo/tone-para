@@ -322,7 +322,7 @@ export function binToJsonForGZ70SP(allBytes, memMap) {
 
 	// Drum Map
 	console.assert(isValidRange(memMap.tableDrums));
-	json.progDrums = makeProgDrums(allBytes.slice(...memMap.tableDrums), json);
+	json.drumMaps = makeDrumMaps(allBytes.slice(...memMap.tableDrums), json);
 
 	removePrivateProp(json);
 
@@ -461,21 +461,21 @@ function addSampleNames(json) {
 	})));
 }
 
-function makeProgDrums(bytes, json) {
+function makeDrumMaps(bytes, json) {
 	console.assert(bytes?.length && Array.isArray(json?.tones));
 
-	const programs = [];
+	const drumMaps = [];
 	const tableDrums = splitArrayByN(bytes, 2);
 	tableDrums.forEach(([prog, toneNo]) => {
-		const program = {
+		const drumProg = {
 			prog, toneNo,
 			tone: {
 				name: json.tones[toneNo].name,
 				$ref: `#/tones/${toneNo}`,
 			},
 		};
-		programs.push(program);
+		drumMaps.push(drumProg);
 	});
 
-	return programs;
+	return drumMaps;
 }

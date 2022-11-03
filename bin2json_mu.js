@@ -17,14 +17,14 @@ export function binToJsonForMU(allBytes, memMap) {
 	json.drumSets = makeDrumSets(allBytes, memMap);
 
 	// Tone Map
-	const tablePrograms = makeProgTable(allBytes, memMap, json);
+	const tableToneMap = makeTableOfToneMap(allBytes, memMap, json);
 	for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'GS', 'TG300B', 'GM2Basic', 'GM2Native']) {
 		if (memMap[`tableTones${kind}`]) {
-			json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
+			json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
 		}
 	}
 	for (const kind of ['SFX']) {
-		json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
+		json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
 	}
 
 	removePrivateProp(json);
@@ -161,12 +161,12 @@ function makeDrumSets(bytes, memMap) {
 	return drumSets;
 }
 
-function makePrograms(tablePrograms, json, kind) {
-	console.assert(tablePrograms && Array.isArray(json?.tones));
+function makeToneMaps(tableToneMap, json, kind) {
+	console.assert(tableToneMap && Array.isArray(json?.tones));
 
 	const silenceToneNos = json.tones.filter((tone) => tone.name === 'Silence   ').map((tone) => tone.toneNo);
 
-	const programs = [];
+	const toneMaps = [];
 	if (kind !== 'GS' && kind !== 'TG300B') {
 		const bankM = {
 			XGBasic:     0,
@@ -179,11 +179,11 @@ function makePrograms(tablePrograms, json, kind) {
 
 		for (let prog = 0; prog < 128; prog++) {
 			for (let bankL = 0; bankL < 128; bankL++) {
-				const toneNo = tablePrograms(kind, prog, bankM, bankL);
-				if ((bankL > 0 && toneNo === tablePrograms(kind, prog, bankM, 0)) || silenceToneNos.includes(toneNo)) {
+				const toneNo = tableToneMap(kind, prog, bankM, bankL);
+				if ((bankL > 0 && toneNo === tableToneMap(kind, prog, bankM, 0)) || silenceToneNos.includes(toneNo)) {
 					continue;
 				}
-				programs.push(makeProgram(kind, prog, bankM, bankL));
+				toneMaps.push(makeToneProg(kind, prog, bankM, bankL));
 			}
 		}
 
@@ -191,28 +191,28 @@ function makePrograms(tablePrograms, json, kind) {
 		const bankL = 0;
 		for (let prog = 0; prog < 128; prog++) {
 			for (let bankM = 0; bankM < 126; bankM++) {
-				const toneNo = tablePrograms(kind, prog, bankM, bankL);
-				if ((bankM > 0 && toneNo === tablePrograms(kind, prog, 0, bankL)) || silenceToneNos.includes(toneNo)) {
+				const toneNo = tableToneMap(kind, prog, bankM, bankL);
+				if ((bankM > 0 && toneNo === tableToneMap(kind, prog, 0, bankL)) || silenceToneNos.includes(toneNo)) {
 					continue;
 				}
-				programs.push(makeProgram(kind, prog, bankM, bankL));
+				toneMaps.push(makeToneProg(kind, prog, bankM, bankL));
 			}
 		}
 		for (const bankM of [126, 127]) {
 			for (let prog = 0; prog < 128; prog++) {
-				const toneNo = tablePrograms(kind, prog, bankM, bankL);
+				const toneNo = tableToneMap(kind, prog, bankM, bankL);
 				if (silenceToneNos.includes(toneNo)) {
 					continue;
 				}
-				programs.push(makeProgram(kind, prog, bankM, bankL));
+				toneMaps.push(makeToneProg(kind, prog, bankM, bankL));
 			}
 		}
 	}
 
-	return programs;
+	return toneMaps;
 
-	function makeProgram(kind, prog, bankM, bankL) {
-		const toneNo = tablePrograms(kind, prog, bankM, bankL);
+	function makeToneProg(kind, prog, bankM, bankL) {
+		const toneNo = tableToneMap(kind, prog, bankM, bankL);
 		return {
 			name: json.tones[toneNo].name,
 			bankM, bankL, prog,
@@ -224,7 +224,7 @@ function makePrograms(tablePrograms, json, kind) {
 	}
 }
 
-function makeProgTable(bytes, memMap, json) {
+function makeTableOfToneMap(bytes, memMap, json) {
 	console.assert(bytes?.length && memMap && Array.isArray(json?.tones));
 
 	console.assert(isValidRange(memMap.tableToneAddrs));

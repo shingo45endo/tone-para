@@ -14,10 +14,10 @@ export function binToJsonForTG300(allBytes, memMap) {
 	json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 
 	// Tone Map
-	const tablePrograms = makeProgTable(allBytes, memMap, json);
+	const tableToneMap = makeTableOfToneMap(allBytes, memMap, json);
 	for (const kind of ['GM_A', 'GM_B']) {
 		if (memMap[`tableTones${kind}`]) {
-			json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
+			json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
 		}
 	}
 
@@ -90,42 +90,42 @@ function makeTones(bytes, json) {
 	return tones;
 }
 
-function makePrograms(tablePrograms, json, kind) {
-	console.assert(tablePrograms && Array.isArray(json?.tones));
+function makeToneMaps(tableToneMap, json, kind) {
+	console.assert(tableToneMap && Array.isArray(json?.tones));
 
-	const programs = [];
+	const toneMaps = [];
 	if (kind === 'GM_A') {
 		for (let prog = 0; prog < 128; prog++) {
 			for (let bankL = 0; bankL < 128; bankL++) {
-				const toneNo = tablePrograms(kind, prog, 0, bankL);
-				if ((bankL > 0 && toneNo === tablePrograms(kind, prog, 0, 0))) {
+				const toneNo = tableToneMap(kind, prog, 0, bankL);
+				if ((bankL > 0 && toneNo === tableToneMap(kind, prog, 0, 0))) {
 					continue;
 				}
-				programs.push(makeProgram(kind, prog, 0, bankL));
+				toneMaps.push(makeToneProg(kind, prog, 0, bankL));
 			}
 		}
 
 	} else {
 		for (let prog = 0; prog < 128; prog++) {
 			for (let bankM = 0; bankM < 64; bankM++) {
-				const toneNo = tablePrograms(kind, prog, bankM, 0);
-				if ((bankM > 0 && toneNo === tablePrograms(kind, prog, 0, 0))) {
+				const toneNo = tableToneMap(kind, prog, bankM, 0);
+				if ((bankM > 0 && toneNo === tableToneMap(kind, prog, 0, 0))) {
 					continue;
 				}
-				programs.push(makeProgram(kind, prog, bankM, 0));
+				toneMaps.push(makeToneProg(kind, prog, bankM, 0));
 			}
 		}
 		for (const bankM of [80, 126, 127]) {
 			for (let prog = 0; prog < 128; prog++) {
-				programs.push(makeProgram(kind, prog, bankM, 0));
+				toneMaps.push(makeToneProg(kind, prog, bankM, 0));
 			}
 		}
 	}
 
-	return programs;
+	return toneMaps;
 
-	function makeProgram(kind, prog, bankM, bankL) {
-		const toneNo = tablePrograms(kind, prog, bankM, bankL);
+	function makeToneProg(kind, prog, bankM, bankL) {
+		const toneNo = tableToneMap(kind, prog, bankM, bankL);
 		return {
 			name: json.tones[toneNo].name,
 			bankM, bankL, prog,
@@ -137,7 +137,7 @@ function makePrograms(tablePrograms, json, kind) {
 	}
 }
 
-function makeProgTable(allBytes, memMap, json) {
+function makeTableOfToneMap(allBytes, memMap, json) {
 	console.assert(allBytes?.length && memMap && Array.isArray(json?.tones));
 
 	const toneTables = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 256).map((packet, i) => splitArrayByN(packet, 2).map((e) => {
