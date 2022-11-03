@@ -359,7 +359,7 @@ function makeTones(allBytes, memMap) {
 				panpot:         view.getInt8(11),
 				velSensDepth:   view.getUint8(25),
 				velSensOffset:  view.getUint8(27),
-				samples:        sampleNos.map((sampleNo) => ({sampleNo, name: null, $ref: `#/samples/${sampleNo}`})),
+				sampleSlots:    sampleNos.map((sampleNo) => ({sample: {sampleNo, name: null, $ref: `#/samples/${sampleNo}`}})),
 				_sampleNos:     sampleNos,
 			};
 			voices.push(voice);
@@ -456,8 +456,8 @@ function addSampleNames(json) {
 	});
 
 	// Adds sample names to tones.
-	json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.samples.forEach((sample) => {
-		sample.name = sampleNames[sample.sampleNo];
+	json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.sampleSlots.forEach((sampleSlot) => {
+		sampleSlot.sample.name = sampleNames[sampleSlot.sample.sampleNo];
 	})));
 }
 

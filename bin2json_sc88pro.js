@@ -108,16 +108,16 @@ function makeWaves(bytes, json) {
 		verifyData(((bytes[index] << 8) | bytes[index + 1]) === 0x03ff);
 		index += 2;
 
-		const multiSamples = [];
+		const sampleSlots = [];
 		for (;;) {
-			const sampleBytes = bytes.slice(index, index + 6);
+			const sampleSlotBytes = bytes.slice(index, index + 6);
 			index += 6;
 
-			const sampleAddr = (sampleBytes[4] << 8) | sampleBytes[5];
+			const sampleAddr = (sampleSlotBytes[4] << 8) | sampleSlotBytes[5];
 			let sampleNo;
 			if (sampleAddr !== 0xffff) {
-				if (sampleBytes[1] !== 0xff) {	// SC-88Pro
-					sampleNo = json.samples.find((sample) => sample._addr === ((sampleBytes[1] << 16) | sampleAddr)).sampleNo;
+				if (sampleSlotBytes[1] !== 0xff) {	// SC-88Pro
+					sampleNo = json.samples.find((sample) => sample._addr === ((sampleSlotBytes[1] << 16) | sampleAddr)).sampleNo;
 				} else {	// SC-88, SC-88VL
 					sampleNo = json.samples.find((sample) => (sample._addr & 0xffff) === sampleAddr).sampleNo;
 				}
@@ -125,29 +125,27 @@ function makeWaves(bytes, json) {
 				sampleNo = -1;
 			}
 
-			const sample = {
+			const sampleSlot = {
 				sampleNo,
-				low: (multiSamples.length > 0) ? multiSamples[multiSamples.length - 1].high + 1 : 0,
-				high: sampleBytes[0],
-				b01: sampleBytes[1],
-				b02: sampleBytes[2],
-				b03: sampleBytes[3],
+				low: (sampleSlots.length > 0) ? sampleSlots[sampleSlots.length - 1].high + 1 : 0,
+				high: sampleSlotBytes[0],
+				b01: sampleSlotBytes[1],
+				b02: sampleSlotBytes[2],
+				b03: sampleSlotBytes[3],
 			};
-/* TODO: Enable
-			if (sample.sampleNo >= 0) {
-				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
+			if (sampleSlot.sampleNo >= 0) {
+				Object.assign(sampleSlot, {sample: {$ref: `#/samples/${sampleNo}`}});
 			}
-*/
-			console.assert(sample.low <= sample.high);
-			multiSamples.push(sample);
+			console.assert(sampleSlot.low <= sampleSlot.high);
+			sampleSlots.push(sampleSlot);
 
-			if (sample.high === 0x7f) {
+			if (sampleSlot.high === 0x7f) {
 				break;
 			}
 		}
 
 		const wave = {
-			waveNo, name, multiSamples,
+			waveNo, name, sampleSlots,
 			_offset: offset,
 		};
 		waves.push(wave);
@@ -282,15 +280,15 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 	combiPackets.forEach((combiBytes, combiNo) => {
 		verifyData(combiBytes[12] === 0x01 && combiBytes[13] === 0x00 && combiBytes[14] === 0x08 && combiBytes[15] === 0x03 && combiBytes[16] === 0x00 && combiBytes[23] === 0xff);
 
-		const tones = [
+		const toneSlots = [
 			{bankL: combiBytes[17], bankM: combiBytes[18], prog: combiBytes[19]},
 			{bankL: combiBytes[20], bankM: combiBytes[21], prog: combiBytes[22]},
 		];
-		tones.forEach((tone) => {
-			const {prog, bankM, bankL} = tone;
+		toneSlots.forEach((toneSlot) => {
+			const {prog, bankM, bankL} = toneSlot;
 			const toneAddr = tableToneMap(prog, bankM, bankL);
 			const toneNo = json.tones.find((tone) => tone._addr === (toneAddr & 0x0fffff)).toneNo;
-			Object.assign(tone, {
+			Object.assign(toneSlot, {
 				toneNo,
 				tone: {
 					name: json.tones[toneNo].name,
@@ -303,7 +301,7 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 			combiNo,
 			name: String.fromCharCode(...combiBytes.slice(0, 12)),
 			bytes: [...combiBytes],
-			tones,
+			toneSlots,
 			_addr: addrBase + 24 * combiNo,
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));

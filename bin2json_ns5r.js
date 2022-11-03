@@ -234,10 +234,10 @@ function makeCombis(bytes, json) {
 		const commonBytes = bytes.slice(index, index + 14);
 		index += 14;
 
-		const tones = [];
+		const toneSlots = [];
 		for (let i = 0; i < 8; i++) {
-			const toneBytes = bytes.slice(index, index + 22);
-			const addr = makeAddress4byteBE(toneBytes.slice(14, 18));
+			const toneSlotBytes = bytes.slice(index, index + 22);
+			const addr = makeAddress4byteBE(toneSlotBytes.slice(14, 18));
 
 			const toneRef = json.tones.find((tone) => tone._addr === addr);
 			const drumToneRef = json.drumTones.find((drumTone) => drumTone._addr === addr);
@@ -249,9 +249,9 @@ function makeCombis(bytes, json) {
 						name: toneRef.name,
 						$ref: `#/tones/${toneRef.toneNo}`,
 					},
-					bytes: [...toneBytes],
+					bytes: [...toneSlotBytes],
 				};
-				tones.push(tone);
+				toneSlots.push(tone);
 			} else if (drumToneRef) {
 				const drumTone = {
 					drumToneNo: drumToneRef.drumToneNo,
@@ -259,16 +259,16 @@ function makeCombis(bytes, json) {
 						name: drumToneRef.name,
 						$ref: `#/drumTones/${drumToneRef.drumToneNo}`,
 					},
-					bytes: [...toneBytes],
+					bytes: [...toneSlotBytes],
 				};
-				tones.push(drumTone);
+				toneSlots.push(drumTone);
 			} else {
 				verifyData(false);
 			}
 
 			index += 22;
 
-			if (makeAddress4byteBE(toneBytes.slice(18)) === 0) {
+			if (makeAddress4byteBE(toneSlotBytes.slice(18)) === 0) {
 				break;
 			}
 		}
@@ -277,7 +277,7 @@ function makeCombis(bytes, json) {
 			combiNo,
 			name: String.fromCharCode(...commonBytes.slice(0, 10)),
 			commonBytes: [...commonBytes],
-			progs: tones,
+			toneSlots,
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));
 		combis.push(combi);

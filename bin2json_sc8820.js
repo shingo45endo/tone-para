@@ -90,7 +90,7 @@ function makeWaves(bytes) {
 		const levels = waveBytes.slice(108, 140);
 		console.assert(notes.length === 32 && sampleNos.length === 32 && levels.length === 32);
 
-		const multiSamples = [];
+		const sampleSlots = [];
 		for (let i = 0; i < 32; i++) {
 			const sampleNo = sampleNos[i];
 			const sample = {
@@ -103,7 +103,7 @@ function makeWaves(bytes) {
 				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
 			}
 			console.assert(sample.low <= sample.high);
-			multiSamples.push(sample);
+			sampleSlots.push(sample);
 
 			if (sample.high === 0x7f) {
 				break;
@@ -113,7 +113,7 @@ function makeWaves(bytes) {
 		const wave = {
 			waveNo,
 			name: String.fromCharCode(...waveBytes.slice(0, 12)),
-			multiSamples,
+			sampleSlots,
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(wave.name));
 		waves.push(wave);
@@ -211,16 +211,16 @@ function makeCombis(bytes, tableToneMap) {
 			combiNo,
 			name: String.fromCharCode(...combiBytes.slice(0, 12)),
 			bytes: [...combiBytes],
-			tones: [
+			toneSlots: [
 				{bankL: combiBytes[16], bankM: combiBytes[17], prog: combiBytes[18]},
 				{bankL: combiBytes[20], bankM: combiBytes[21], prog: combiBytes[22]},
 			],
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));
-		for (const tone of combi.tones) {
-			const toneNo = tableToneMap(tone.prog, tone.bankM, tone.bankL) & 0x1fff;
-			tone.toneNo = toneNo;
-			tone.tone = {
+		for (const toneSlot of combi.toneSlots) {
+			const toneNo = tableToneMap(toneSlot.prog, toneSlot.bankM, toneSlot.bankL) & 0x1fff;
+			toneSlot.toneNo = toneNo;
+			toneSlot.tone = {
 				$ref: `#/tones/${toneNo}`,
 			};
 		}
