@@ -5,30 +5,17 @@ export function binToJsonForSC88Pro(allBytes, memMap) {
 
 	const json = makeBasicJson(allBytes, memMap);
 
+	const tablePrograms = makeProgTableForSC88Pro(allBytes, memMap);
+	const tableProgDrums = makeProgDrumTableForSC88Pro(allBytes, memMap);
+
 	// Legato
-	json.combis = makeCombis(allBytes, memMap.combis);
+	json.combis = makeCombis(allBytes, memMap.combis, tablePrograms, json);
 
 	// Tone Map
-	const tablePrograms = makeProgTableForSC88Pro(allBytes, memMap);
 	json.programs = makePrograms(tablePrograms, json);
 
 	// Drum Map
-	const tableProgDrums = makeProgDrumTableForSC88Pro(allBytes, memMap);
 	json.progDrums = makeProgDrums(tableProgDrums, json);
-
-	// Adds references of tones to Legato tones.
-	json.combis.forEach((combi) => combi.tones.forEach((tone) => {
-		const {prog, bankM, bankL} = tone;
-		const toneAddr = tablePrograms(prog, bankM, bankL);
-		const toneNo = json.tones.find((tone) => tone._addr === (toneAddr & 0x0fffff)).toneNo;
-		Object.assign(tone, {
-			toneNo,
-			tone: {
-				name: json.tones[toneNo].name,
-				$ref: `#/tones/${toneNo}`,
-			},
-		});
-	}));
 
 	removePrivateProp(json);
 
@@ -146,6 +133,11 @@ function makeWaves(bytes, json) {
 				b02: sampleBytes[2],
 				b03: sampleBytes[3],
 			};
+/* TODO: Enable
+			if (sample.sampleNo >= 0) {
+				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
+			}
+*/
 			console.assert(sample.low <= sample.high);
 			multiSamples.push(sample);
 
@@ -184,7 +176,7 @@ function makeTones(allBytes, tonesRanges, json) {
 			verifyData(commonBytes[18] === 0xff && commonBytes[25] === 0x00);
 			const voicePackets = splitArrayByN(toneBytes.slice(34), 148);
 
-			const voices =  voicePackets.map((voiceBytes) => {
+			const voices = voicePackets.map((voiceBytes) => {
 				verifyData([9, 28, 38, 39].every((index) => voiceBytes[index] === 0x00));
 				verifyData([6, 47, 57, 63, 89, 147].every((index) => voiceBytes[index] === 0xff));
 				const waveOffset = (voiceBytes[0] << 8) | voiceBytes[1];
@@ -219,7 +211,7 @@ function makeTones(allBytes, tonesRanges, json) {
 }
 
 function makeDrumSets(allBytes, memMap, json) {
-	console.assert(allBytes?.length && memMap && json?.tones);
+	console.assert(allBytes?.length && memMap && Array.isArray(json?.tones));
 
 	console.assert(Array.isArray(memMap.drumSetsRanges) && memMap.drumSetsRanges.every((e) => isValidRange(e)));
 	const drumSetInstances = [];
@@ -280,8 +272,8 @@ function makeDrumSets(allBytes, memMap, json) {
 	return drumSets;
 }
 
-function makeCombis(allBytes, combisRange) {
-	console.assert(allBytes?.length && isValidRange(combisRange));
+function makeCombis(allBytes, combisRange, tablePrograms, json) {
+	console.assert(allBytes?.length && isValidRange(combisRange) && tablePrograms && Array.isArray(json?.tones));
 
 	const addrBase = combisRange[0];
 	const combiPackets = splitArrayByN(allBytes.slice(...combisRange), 24);
@@ -289,14 +281,29 @@ function makeCombis(allBytes, combisRange) {
 	const combis = [];
 	combiPackets.forEach((combiBytes, combiNo) => {
 		verifyData(combiBytes[12] === 0x01 && combiBytes[13] === 0x00 && combiBytes[14] === 0x08 && combiBytes[15] === 0x03 && combiBytes[16] === 0x00 && combiBytes[23] === 0xff);
+
+		const tones = [
+			{bankL: combiBytes[17], bankM: combiBytes[18], prog: combiBytes[19]},
+			{bankL: combiBytes[20], bankM: combiBytes[21], prog: combiBytes[22]},
+		];
+		tones.forEach((tone) => {
+			const {prog, bankM, bankL} = tone;
+			const toneAddr = tablePrograms(prog, bankM, bankL);
+			const toneNo = json.tones.find((tone) => tone._addr === (toneAddr & 0x0fffff)).toneNo;
+			Object.assign(tone, {
+				toneNo,
+				tone: {
+					name: json.tones[toneNo].name,
+					$ref: `#/tones/${toneNo}`,
+				},
+			});
+		});
+
 		const combi = {
 			combiNo,
 			name: String.fromCharCode(...combiBytes.slice(0, 12)),
 			bytes: [...combiBytes],
-			tones: [
-				{bankL: combiBytes[17], bankM: combiBytes[18], prog: combiBytes[19]},
-				{bankL: combiBytes[20], bankM: combiBytes[21], prog: combiBytes[22]},
-			],
+			tones,
 			_addr: addrBase + 24 * combiNo,
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));
@@ -416,7 +423,7 @@ const seqBankL = [
 ];
 
 function makePrograms(tablePrograms, json) {
-	console.assert(tablePrograms && json);
+	console.assert(tablePrograms && Array.isArray(json?.tones));
 
 	const programs = [];
 	for (const bankL of seqBankL) {
@@ -449,10 +456,7 @@ function makePrograms(tablePrograms, json) {
 		}
 
 		const tone = json.tones.find((tone) => tone._addr === (addr & 0x0fffff));
-		let combi;
-		if (!tone) {
-			combi = json.combis.find((combi) => combi._addr === (addr & 0x0fffff));
-		}
+		const combi = json.combis?.find((combi) => combi._addr === (addr & 0x0fffff));
 
 		if (tone) {
 			const toneNo = tone.toneNo;
@@ -482,7 +486,7 @@ function makePrograms(tablePrograms, json) {
 }
 
 function makeProgDrums(tableProgDrums, json) {
-	console.assert(tableProgDrums && json);
+	console.assert(tableProgDrums && Array.isArray(json?.drumSets));
 
 	const progDrums = [];
 	for (const bankL of seqBankL) {

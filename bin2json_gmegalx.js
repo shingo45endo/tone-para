@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange} from './bin2json_common.js';
+import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
 const drumToneNames = [
 	'BOB BD',
@@ -133,98 +133,109 @@ const drumToneNames = [
 console.assert(drumToneNames.length === 128);
 
 export function binToJsonForGMegaLx(allBytes, memMap) {
-	console.assert(allBytes && memMap && Object.values(memMap).every((range) => isValidRange(range)));
+	console.assert(allBytes?.length && memMap);
 
 	const json = {};
 
 	// Tones
 	json.tones = makeTones(allBytes, memMap);
-	console.assert(memMap.drumToneParams);
-	json.drumTones = makeDrumTones(allBytes.slice(...memMap.drumToneParams), json);
+
+	// Drum Tones
+	console.assert(isValidRange(memMap.drumToneParams));
+	json.drumTones = makeDrumTones(allBytes.slice(...memMap.drumToneParams));
 
 	// Drum Sets
-	console.assert(memMap.tableDrumNotes);
+	console.assert(isValidRange(memMap.tableDrumNotes));
 	json.drumSets = makeDrumSets(allBytes.slice(...memMap.tableDrumNotes), json);
 
 	return json;
 }
 
-function makeTones(bytes, memMap) {
-	console.assert(memMap.toneNames && memMap.tableToneAddrs);
+function makeTones(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
 
-	const toneNames = splitArrayByN(bytes.slice(...memMap.toneNames), 8).map((bytes) => String.fromCharCode(...bytes));
+	console.assert(isValidRange(memMap.toneNames));
+	const toneNames = splitArrayByN(allBytes.slice(...memMap.toneNames), 8).map((bytes) => String.fromCharCode(...bytes));
 	console.assert(toneNames.length === 167);
-	const tableToneAddrs = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), 2).map((e) => (e[1] << 8) | e[0]);
+	verifyData(toneNames.every((e) => /^[\x20-\x7f]*$/u.test(e)));
+
+	console.assert(isValidRange(memMap.tableToneAddrs));
+	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 2).map((e) => (e[1] << 8) | e[0]);
 	console.assert(tableToneAddrs.length === 160);
 
 	const tones = [];
 	for (let toneNo = 0; toneNo < tableToneAddrs.length; toneNo++) {
 		const addr = 0x10000 + tableToneAddrs[toneNo];
-		tones.push({
+		const tone = {
 			toneNo,
 			name: toneNames[toneNo],
-			bytes: [...bytes.slice(addr, addr + 12)],	// TODO: Confirm.
-		});
+			bytes: [...allBytes.slice(addr, addr + 12)],	// TODO: Confirm.
+		};
+		tones.push(tone);
 	}
 	for (let toneNo = tableToneAddrs.length; toneNo < toneNames.length; toneNo++) {
-		tones.push({
+		const tone = {
 			toneNo,
 			name: toneNames[toneNo],
 			voices: [],
-		});
+		};
+		tones.push(tone);
 	}
 
 	return tones;
 }
 
-function makeDrumTones(bytes, json) {
-	const drumToneParamsPackets = splitArrayByN(bytes, 23);
-	console.assert(drumToneParamsPackets.length === 128);
+function makeDrumTones(bytes) {
+	console.assert(bytes?.length);
 
 	const drumTones = [];
+	const drumToneParamsPackets = splitArrayByN(bytes, 23);
+	console.assert(drumToneParamsPackets.length === 128);
 	drumToneParamsPackets.forEach((drumToneParamsBytes, drumToneNo) => {
 //		const drumWaveNo = drumToneParamsBytes[22];
-		const voices = [{
+		const voice = {
 //			drumWaveNo,
 			bytes: [...drumToneParamsBytes],
 //			drumWave: {
 //				name: drumToneWaveNames[drumWaveNo],
 //				$ref: `#/drumWaves/${drumWaveNo}`,
 //			},
-		}];
-
-		drumTones.push({
+		};
+		const drumTone = {
 			drumToneNo,
 			name: drumToneNames[drumToneNo],
-			voices,
-		});
+			voices: [voice],
+		};
+		drumTones.push(drumTone);
 	});
 
 	return drumTones;
 }
 
 function makeDrumSets(bytes, json) {
-	const drumSetPackets = splitArrayByN(bytes, 128);
+	console.assert(bytes?.length && Array.isArray(json?.tones) && Array.isArray(json?.drumTones));
 
-	console.assert(Array.isArray(json?.tones) && Array.isArray(json?.drumTones));
 	const drumSets = [];
+	const drumSetPackets = splitArrayByN(bytes, 128);
 	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
-		const notes = drumSetBytes.reduce((results, drumToneNo, noteNo) => {
-			results[noteNo] = {
+		const notes = {};
+		drumSetBytes.forEach((drumToneNo, noteNo) => {
+			const note = {
 				drumToneNo,
 				drumTone: {
 					name: json.drumTones[drumToneNo].name,
 					$ref: `#/drumTones/${drumToneNo}`,
 				},
 			};
-			return results;
-		}, {});
+			notes[noteNo] = note;
+		});
 
-		drumSets.push({
+		const drumSet = {
 			drumSetNo,
 			name: json.tones[160 + drumSetNo].name,
 			notes,
-		});
+		};
+		drumSets.push(drumSet);
 	});
 
 	return drumSets;

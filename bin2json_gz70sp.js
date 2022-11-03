@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, verifyData} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData, isValidRange} from './bin2json_common.js';
 
 const toneNames = [
 	'PIANO 1',
@@ -306,54 +306,53 @@ const drumNames = [
 console.assert(drumNames.length === 8);
 
 export function binToJsonForGZ70SP(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
 	const json = {};
 
-	if (memMap.tableSampleOffsets) {
-		json._tableSampleOffsets = splitArrayByN(allBytes.slice(...memMap.tableSampleOffsets), 256).map((tableBytes) => splitArrayByN(tableBytes, 2).map((e) => (new DataView(e.buffer)).getUint16(0, true)));
-	}
-	if (memMap.tones && memMap.tableSampleOffsets) {
-		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
-	}
-	if (memMap.samples && memMap.tones && memMap.tableSampleOffsets) {
-		json.samples = makeSamples(allBytes.slice(...memMap.samples), json);
+	// Tones
+	json.tones = makeTones(allBytes, memMap);
 
-		// Sets sample names.
-		json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.samples.forEach((sample) => {
-			sample.name = json.samples[sample.sampleNo].name;
-		})));
-	}
-	if (memMap.tableDrums) {
-		json.progDrums = makeProgDrums(allBytes.slice(...memMap.tableDrums), json);
-	}
+	// Samples
+	console.assert(isValidRange(memMap.samples));
+	json.samples = makeSamples(allBytes.slice(...memMap.samples));
+
+	// Adds sample names.
+	addSampleNames(json);
+
+	// Drum Map
+	console.assert(isValidRange(memMap.tableDrums));
+	json.progDrums = makeProgDrums(allBytes.slice(...memMap.tableDrums), json);
 
 	removePrivateProp(json);
 
 	return json;
 }
 
-function makeTones(bytes, json) {
-	const voicePackets = splitArrayByN(bytes, 28);
+function makeTones(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
+	console.assert(isValidRange(memMap.tones));
+	const tonePackets = splitArrayByN(allBytes.slice(...memMap.tones), 28);
+
+	console.assert(isValidRange(memMap.tableSampleOffsets));
+	const tableSampleOffsets = splitArrayByN(allBytes.slice(...memMap.tableSampleOffsets), 256).map((tableBytes) => splitArrayByN(tableBytes, 2).map((e) => (e[1] << 8) | e[0]));
 
 	const tones = [];
 	let index = 0;
 	let toneNo = 0;
-	while (index < voicePackets.length) {
-		const numVoices = ((voicePackets[index][3] & 0x80) === 0) ? 1 : 2;
+	while (index < tonePackets.length) {
+		const numVoices = ((tonePackets[index][3] & 0x80) === 0) ? 1 : 2;
 
-		const tone = {
-			toneNo,
-			name: toneNames[toneNo],
-			voices: [],
-		};
-
+		const voices = [];
 		for (let i = 0; i < numVoices; i++) {
-			const voiceBytes = voicePackets[index];
+			const voiceBytes = tonePackets[index];
 			const view = new DataView(voiceBytes.buffer);
 			verifyData(voiceBytes[0] === 0x00 && voiceBytes[6] === 0x00 && voiceBytes[8] === 0x00 && voiceBytes[10] === 0x00 && voiceBytes[12] === 0x00 && view.getUint16(14, true) === 0x0000 && view.getUint16(16, true) === 0x7000 && voiceBytes[24] === 0x00 && voiceBytes[26] === 0x00);
 
 			const sampleTableNo = voiceBytes[1];
 			const sampleBase = view.getUint16(2, true) & 0x0fff;
-			const sampleNos = json._tableSampleOffsets[sampleTableNo].map((e) => sampleBase + e);
+			const sampleNos = tableSampleOffsets[sampleTableNo].map((e) => sampleBase + e);
 			const voice = {
 				pitchKeyFollow: (voiceBytes[3] & 0x70) >> 4,
 				pitchTune:      view.getInt16(4, true),
@@ -363,10 +362,15 @@ function makeTones(bytes, json) {
 				samples:        sampleNos.map((sampleNo) => ({sampleNo, name: null, $ref: `#/samples/${sampleNo}`})),
 				_sampleNos:     sampleNos,
 			};
-			tone.voices.push(voice);
+			voices.push(voice);
 			index++;
 		}
 
+		const tone = {
+			toneNo,
+			name: toneNames[toneNo],
+			voices,
+		};
 		tones.push(tone);
 		toneNo++;
 	}
@@ -374,11 +378,39 @@ function makeTones(bytes, json) {
 	return tones;
 }
 
-function makeSamples(bytes, json) {
+function makeSamples(bytes) {
+	console.assert(bytes?.length);
+
+	const samples = [];
 	const samplePackets = splitArrayByN(bytes, 16);
+	samplePackets.forEach((sampleBytes, sampleNo) => {
+		const view = new DataView(sampleBytes.buffer);
+		verifyData(sampleBytes[6] === 0x00 && sampleBytes[7] === 0x00);
+
+		const sample = {
+			sampleNo,
+			name:      null,
+			level:     sampleBytes[14],
+			pitch:     view.getInt16(12, true),
+			exponent:  sampleBytes[15],
+			startAddr: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
+			endAddr:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
+			loopAddr:  ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
+		};
+		verifyData(sample.startAddr <  sample.endAddr  || sample.sampleNo === 125);	// Sample #125 is empty data.
+		verifyData(sample.startAddr <= sample.loopAddr || sample.sampleNo === 612);	// Sample #612 (for "BIRD") seems have wrong loop address. (probably a bug)
+		verifyData(sample.loopAddr  <= sample.endAddr);
+		samples.push(sample);
+	});
+
+	return samples;
+}
+
+function addSampleNames(json) {
+	console.assert(Array.isArray(json?.tones) && Array.isArray(json?.samples));
 
 	// Makes sample names from tone names.
-	const sampleNames = [...new Array(samplePackets.length)].fill(null);
+	const sampleNames = [...new Array(json.samples.length)].fill(null);
 	json.tones.forEach((tone, toneNo) => {
 		let loopNum = tone.voices.length;
 		if (loopNum > 1) {
@@ -418,35 +450,32 @@ function makeSamples(bytes, json) {
 		}
 	}
 
-	const samples = [];
-	for (let sampleNo = 0; sampleNo < samplePackets.length; sampleNo++) {
-		const sampleBytes = samplePackets[sampleNo];
-		const view = new DataView(sampleBytes.buffer);
-		verifyData(sampleBytes[6] === 0x00 && sampleBytes[7] === 0x00);
+	// Adds sample names to samples.
+	json.samples.forEach((sample, i) => {
+		sample.name = sampleNames[i];
+	});
 
-		const sample = {
-			sampleNo,
-			name:      sampleNames[sampleNo],
-			level:     sampleBytes[14],
-			pitch:     view.getInt16(12, true),
-			exponent:  sampleBytes[15],
-			startAddr: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
-			endAddr:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
-			loopAddr:  ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
-		};
-		samples.push(sample);
-	}
-
-	return samples;
+	// Adds sample names to tones.
+	json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.samples.forEach((sample) => {
+		sample.name = sampleNames[sample.sampleNo];
+	})));
 }
 
 function makeProgDrums(bytes, json) {
+	console.assert(bytes?.length && Array.isArray(json?.tones));
+
+	const programs = [];
 	const tableDrums = splitArrayByN(bytes, 2);
-	return tableDrums.map(([prog, toneNo]) => ({
-		prog, toneNo,
-		tone: {
-			name: json.tones[toneNo].name,
-			$ref: `#/tones/${toneNo}`,
-		},
-	}));
+	tableDrums.forEach(([prog, toneNo]) => {
+		const program = {
+			prog, toneNo,
+			tone: {
+				name: json.tones[toneNo].name,
+				$ref: `#/tones/${toneNo}`,
+			},
+		};
+		programs.push(program);
+	});
+
+	return programs;
 }

@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import {splitArrayByN, removePrivateProp, verifyData} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData, isValidRange} from './bin2json_common.js';
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
@@ -220,21 +220,23 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 	},
 ].map((props) => {
 	return (allBytes, memMap) => {
+		console.assert(allBytes?.length && memMap);
+
 		const json = {...extraJson};
 
-		if (memMap.tones) {
-			json.tones = makeTones(allBytes.slice(...memMap.tones), props, json);
-		}
-		if (memMap.tableToneAddrs && memMap.tableTonesMsb) {
-			const tablePrograms = makeProgTable(allBytes, memMap, json, props.addrSize);
-			for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'TG300B']) {
-				if (memMap[`tableTones${kind}`]) {
-					json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
-				}
-			}
-			for (const kind of props.additionalMaps) {
+		// Tones
+		console.assert(isValidRange(memMap.tones));
+		json.tones = makeTones(allBytes.slice(...memMap.tones), props, json);
+
+		// Tone Map
+		const tablePrograms = makeProgTable(allBytes, memMap, json, props.addrSize);
+		for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'TG300B']) {
+			if (memMap[`tableTones${kind}`]) {
 				json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 			}
+		}
+		for (const kind of props.additionalMaps) {
+			json[`programs${kind}`] = makePrograms(tablePrograms, json, kind);
 		}
 
 		removePrivateProp(json);
@@ -244,35 +246,21 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 });
 
 function makeTones(bytes, props, json) {
-	const waves = new Set();
+	console.assert(bytes?.length && props && Array.isArray(json?.waves));
+
 	const tones = [];
 	let index = 0;
 	let toneNo = 0;
 	while (index < bytes.length) {
-		let commonBytes = bytes.slice(index, index + 10);
-		if (props.convertCommonBytes) {
-			commonBytes = props.convertCommonBytes(commonBytes);
-		}
+		const commonBytes = convertCommonBytes(bytes.slice(index, index + 10));
 		const bits = commonBytes[0x00];
 		verifyData(bits === 0b01 || bits === 0b11);
 		const numVoices = {0b01: 1, 0b11: 2}[bits];
-		let voicePackets = splitArrayByN(bytes.slice(index + 10, index + 10 + props.voicePacketSize * numVoices), props.voicePacketSize);
-		if (props.convertVoicePacket) {
-			voicePackets = voicePackets.map((e) => props.convertVoicePacket(e));
-		}
-		const name = String.fromCharCode(...commonBytes.slice(2, 10));
 
-		const tone = {
-			toneNo, name,
-			commonBytes: [...commonBytes],
-			voices: [],
-			_offset: index,
-		};
-
-		for (let i = 0; i < voicePackets.length; i++) {
-			const voiceBytes = voicePackets[i];
+		const voices = [];
+		const voicePackets = splitArrayByN(bytes.slice(index + 10, index + 10 + props.voicePacketSize * numVoices), props.voicePacketSize).map((voicePacket) => convertVoicePacket(voicePacket));
+		voicePackets.forEach((voiceBytes) => {
 			const waveNo = (voiceBytes[0] << 7) | voiceBytes[1];
-			waves.add(waveNo);
 			const voice = {
 				waveNo,
 				bytes: [...voiceBytes],
@@ -281,9 +269,17 @@ function makeTones(bytes, props, json) {
 					$ref: `#/waves/${waveNo}`,
 				},
 			};
-			tone.voices.push(voice);
-		}
+			voices.push(voice);
+		});
 
+		const tone = {
+			toneNo,
+			name: String.fromCharCode(...commonBytes.slice(2, 10)),
+			commonBytes: [...commonBytes],
+			voices,
+			_offset: index,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
 		tones.push(tone);
 
 		index += 10 + props.voicePacketSize * numVoices;
@@ -291,10 +287,17 @@ function makeTones(bytes, props, json) {
 	}
 
 	return tones;
+
+	function convertCommonBytes(bytes) {
+		return (props.convertCommonBytes) ? props.convertCommonBytes(bytes) : bytes;
+	}
+	function convertVoicePacket(bytes) {
+		return (props.convertVoicePacket) ? props.convertVoicePacket(bytes) : bytes;
+	}
 }
 
 function makePrograms(tablePrograms, json, kind) {
-	console.assert(json && json.tones);
+	console.assert(tablePrograms && Array.isArray(json?.tones));
 
 	const silenceToneNos = json.tones.filter((tone) => tone.name === 'Silence ').map((tone) => tone.toneNo);
 
@@ -355,9 +358,9 @@ function makePrograms(tablePrograms, json, kind) {
 }
 
 function makeProgTable(bytes, memMap, json, addrSize) {
-	console.assert(json && json.tones);
-	console.assert(memMap && memMap.tableToneAddrs && memMap.tableTonesMsb);
+	console.assert(bytes?.length && memMap && Array.isArray(json?.tones) && Number.isInteger(addrSize));
 
+	console.assert(isValidRange(memMap.tableToneAddrs));
 	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
 		const offset = e.reduce((p, c) => (p << 8) | c, 0) * ((addrSize === 2) ? 2 : 1);
 		const tone = json.tones.filter((tone) => offset === tone._offset);
@@ -365,6 +368,7 @@ function makeProgTable(bytes, memMap, json, addrSize) {
 		return tone[0].toneNo;
 	}));
 
+	console.assert(isValidRange(memMap.tableTonesMsb));
 	const tableBanksMsb = bytes.slice(...memMap.tableTonesMsb);
 	const tables = Object.entries(memMap).filter(([key, _]) => key.startsWith('tableTones')).reduce((p, [key, value]) => {
 		p[key] = bytes.slice(...value);

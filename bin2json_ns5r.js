@@ -1,43 +1,89 @@
-import {splitArrayByN, makeAddress4byteBE, verifyData} from './bin2json_common.js';
+import {splitArrayByN, makeAddress4byteBE, removePrivateProp, isValidRange, verifyData} from './bin2json_common.js';
 
 export function binToJsonForNS5R(files, memMap) {
+	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
+
 	const json = {};
 
-	if (files.PCM && memMap.samples) {
-		json.toneWaves = makeSamples(files.PCM.slice(...memMap.samples), json);
-	}
-	if (files.PCM && memMap.drumSamples) {
-		json.drumWaves = makeDrumSamples(files.PCM.slice(...memMap.drumSamples), json);
-	}
-	if (files.PCM && memMap.drumNoteParams) {
-		json.drumSets = makeDrumSets(files.PCM, memMap, json);
-	}
-	if (files.PROG && memMap.drums) {
-		json.drums = makeDrums(files.PROG.slice(...memMap.drums), json);
-	}
-	if (files.PROG && memMap.tones) {
-		json.tones = makeTones(files.PROG.slice(...memMap.tones), json);
-	}
-	if (files.PROG && memMap.combis) {
-		json.combis = makeCombis(files.PROG.slice(...memMap.combis), json);
-	}
+	// Waves
+	console.assert(isValidRange(memMap.waveNames));
+	json.toneWaves = makeWaves(files.PCM.slice(...memMap.waveNames));
+
+	// Drum Samples
+	console.assert(isValidRange(memMap.drumSamples));
+	json.drumWaves = makeDrumSamples(files.PCM.slice(...memMap.drumSamples));
+
+	// Drum Sets
+	json.drumSets = makeDrumSets(files.PCM, memMap, json);
+
+	// Drum Tones
+	console.assert(isValidRange(memMap.drumTones));
+	json.drums = makeDrumTones(files.PROG.slice(...memMap.drumTones));
+
+	// Tones
+	console.assert(isValidRange(memMap.tones));
+	json.tones = makeTones(files.PROG.slice(...memMap.tones), json);
+
+	// Combinations
+	console.assert(isValidRange(memMap.combis));
+	json.combis = makeCombis(files.PROG.slice(...memMap.combis), json);
+
+	removePrivateProp(json);
 
 	return json;
 }
 
-function makeSamples(bytes) {
-	const samplePackets = splitArrayByN(bytes, 10);
-	return samplePackets.map((e, i) => ({toneWaveNo: i, name: String.fromCharCode(...e)}));
+function makeWaves(bytes) {
+	console.assert(bytes?.length);
+
+	const waves = [];
+	const waveNamePackets = splitArrayByN(bytes, 10);
+	waveNamePackets.forEach((waveNameBytes, waveNo) => {
+		const wave = {
+			toneWaveNo: waveNo,
+			name: String.fromCharCode(...waveNameBytes),
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(wave.name));
+		waves.push(wave);
+	});
+
+	return waves;
 }
 
 function makeDrumSamples(bytes) {
-	const samplePackets = splitArrayByN(bytes, 22);
-	return samplePackets.map((e, i) => ({drumWaveNo: i, name: String.fromCharCode(...e.slice(0, 10))}));
+	console.assert(bytes?.length);
+
+	const drumSamples = [];
+	const drumSamplePackets = splitArrayByN(bytes, 22);
+	drumSamplePackets.forEach((drumSampleBytes, drumSampleNo) => {
+		const drumSample = {
+			drumWaveNo: drumSampleNo,
+			name: String.fromCharCode(...drumSampleBytes.slice(0, 10)),
+//			begin: drumSampleBytes.slice(13, 16).reduce((p, c) => (p << 8) | c, 0),
+//			loop:  drumSampleBytes.slice(16, 19).reduce((p, c) => (p << 8) | c, 0),
+//			end:   drumSampleBytes.slice(19, 22).reduce((p, c) => (p << 8) | c, 0),
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(drumSample.name));
+//		verifyData(drumSample.begin < drumSample.end);
+//		verifyData(drumSample.begin < drumSample.loop);
+//		verifyData(drumSample.loop  <= drumSample.end);
+		drumSamples.push(drumSample);
+	});
+
+	return drumSamples;
 }
 
 function makeDrumSets(pcmBytes, memMap, json) {
+	console.assert(pcmBytes?.length && memMap && Array.isArray(json?.drumWaves));
+
+	console.assert(isValidRange(memMap.drumSetNames));
 	const drumNames = splitArrayByN(pcmBytes.slice(...memMap.drumSetNames), 10).map((e) => String.fromCharCode(...e));
+
+	console.assert(isValidRange(memMap.tableDrumSets));
 	const drumSetsAddrs = splitArrayByN(pcmBytes.slice(...memMap.tableDrumSets), 4).map((e) => makeAddress4byteBE(e) - 0x60000);
+
+	console.assert(isValidRange(memMap.drumNoteParams));
+	const [rangeDrumNoteParamsBegin, rangeDrumNoteParamsEnd] = memMap.drumNoteParams;
 
 	const drumSets = [];
 	for (let drumSetNo = 0; drumSetNo < drumNames.length; drumSetNo++) {
@@ -47,20 +93,20 @@ function makeDrumSets(pcmBytes, memMap, json) {
 			notes: {},
 		};
 
-		const addrBegin = drumSetsAddrs[drumSetNo];
-		let addrEnd = drumSetsAddrs[drumSetNo + 1];
-		if (addrEnd < addrBegin) {
-			addrEnd = memMap.drumNoteParams[1];
+		const rangeBegin = drumSetsAddrs[drumSetNo];
+		let rangeEnd = drumSetsAddrs[drumSetNo + 1];
+		if (rangeEnd < rangeBegin) {
+			rangeEnd = rangeDrumNoteParamsEnd;
 		}
-		if (memMap.drumNoteParams[0] <= addrBegin && addrBegin <= memMap.drumNoteParams[1] && memMap.drumNoteParams[0] <= addrEnd && addrEnd <= memMap.drumNoteParams[1]) {
-			const drumParamPackets = splitArrayByN(pcmBytes.slice(addrBegin, addrEnd), 14);
-			for (let i = 0; i < drumParamPackets.length; i++) {
-				const drumParamPacket = drumParamPackets[i];
-				if (/^0,0,0,0,\d+,0,4,0,0,0,0,64,0,0$/u.test(drumParamPacket.map((e) => String(e)).join(','))) {
-					continue;
+		if (rangeDrumNoteParamsBegin <= rangeBegin && rangeBegin <= rangeDrumNoteParamsEnd && rangeDrumNoteParamsBegin <= rangeEnd && rangeEnd <= rangeDrumNoteParamsEnd) {
+			const notes = {};
+			const drumParamPackets = splitArrayByN(pcmBytes.slice(rangeBegin, rangeEnd), 14);
+			drumParamPackets.forEach((drumParamBytes, i) => {
+				if (/^0,0,0,0,\d+,0,4,0,0,0,0,64,0,0$/u.test(drumParamBytes.map((e) => String(e)).join(','))) {
+					return;
 				}
-				const noteNo = 12 + i;
-				const drumWaveNo = (drumParamPacket[0] << 8) | drumParamPacket[1];
+
+				const drumWaveNo = (drumParamBytes[0] << 8) | drumParamBytes[1];
 				const note = {
 					drumWaveNo,
 					bytes: [...drumParamPackets[i]],
@@ -69,8 +115,10 @@ function makeDrumSets(pcmBytes, memMap, json) {
 						$ref: `#/drumWaves/${drumWaveNo}`,
 					},
 				};
-				drumSet.notes[noteNo] = note;
-			}
+				const noteNo = 12 + i;
+				notes[noteNo] = note;
+			});
+			drumSet.notes = notes;
 		}
 
 		drumSets.push(drumSet);
@@ -79,80 +127,94 @@ function makeDrumSets(pcmBytes, memMap, json) {
 	return drumSets;
 }
 
-const addrMap = new Map();
+function makeDrumTones(bytes) {
+	console.assert(bytes?.length);
 
-function makeDrums(bytes) {
-	const drumPackets = splitArrayByN(bytes, 86);
-	const drums = [];
-	for (let drumNo = 0; drumNo < drumPackets.length; drumNo++) {
-		const drumBytes = drumPackets[drumNo];
-		verifyData(drumBytes[10] === 2);
-
-		const commonBytes = drumBytes.slice(0, 14);
-		const voiceBytes = drumBytes.slice(14);
-		const name = String.fromCharCode(...commonBytes.slice(0, 10));
-
-		const drum = {
-			drumNo, name,
-			commonBytes: [...commonBytes],
-			voices: [
-				{
-//					waveNo: (voiceBytes[0] << 8) | voiceBytes[1],
-					bytes: [...voiceBytes],
-				},
-			],
+	const drumTones = [];
+	const drumTonePackets = splitArrayByN(bytes, 86);
+	drumTonePackets.forEach((drumToneBytes, drumToneNo) => {
+		verifyData(drumToneBytes[10] === 2);
+		const commonBytes = drumToneBytes.slice(0, 14);
+		const voiceBytes = drumToneBytes.slice(14);
+		const voice = {
+//			waveNo: (voiceBytes[0] << 8) | voiceBytes[1],
+			bytes: [...voiceBytes],
 		};
-		addrMap.set(0x022e3c + drumNo * drumBytes.length, {drumNo, drum: {name, $ref: `#/drums/${drumNo}`}});
+		const drumTone = {
+			drumNo: drumToneNo,
+			name: String.fromCharCode(...commonBytes.slice(0, 10)),
+			commonBytes: [...commonBytes],
+			voices: [voice],
+			_addr: 0x022e3c + drumToneBytes.length * drumToneNo,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(drumTone.name));
+		drumTones.push(drumTone);
+	});
 
-		drums.push(drum);
-	}
-
-	return drums;
+	return drumTones;
 }
 
 function makeTones(bytes, json) {
-	console.assert(json && json.toneWaves);
+	console.assert(bytes?.length && Array.isArray(json.toneWaves) && Array.isArray(json.drumSets));
+
 	const tones = [];
 	let index = 0;
 	let toneNo = 0;
 	while (index < bytes.length) {
 		const kind = bytes[index + 10];
+		verifyData(0 <= kind && kind <= 2);
 		const numVoices = (kind === 1) ? 2 : 1;
 		const size = 14 + 72 * numVoices;
 		const toneBytes = bytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
+
+		const voices = [];
 		const voicePackets = splitArrayByN(toneBytes.slice(14), 72);
-		const name = String.fromCharCode(...commonBytes.slice(0, 10));
-
-		const tone = {
-			toneNo, name,
-			commonBytes: [...commonBytes],
-			voices: [],
-		};
-		addrMap.set(0x0238a6 + index, {toneNo, tone: {name, $ref: `#/tones/${toneNo}`}});
-
-		for (let i = 0; i < voicePackets.length; i++) {
-			const voiceBytes = voicePackets[i];
+		voicePackets.forEach((voiceBytes) => {
 			const no = (voiceBytes[0] << 8) | voiceBytes[1];
-			const voice = {
-				bytes: [...voiceBytes],
-			};
-			if (kind !== 2) {
-				voice.toneWaveNo = no;
-				voice.toneWave = {
-					name: json.toneWaves[no].name,
-					$ref: `#/toneWaves/${no}`,
-				};
-			} else {
-				voice.drumSetNo = no;
-				voice.drumSet = {
-					name: json.drumSets[no].name,
-					$ref: `#/drumSets/${no}`,
-				};
-			}
-			tone.voices.push(voice);
-		}
+			switch (kind) {
+			case 0:	// Single Prog
+			case 1:	// Double Prog
+				{
+					const voice = {
+						bytes: [...voiceBytes],
+						toneWaveNo: no,
+						toneWave: {
+							name: json.toneWaves[no].name,
+							$ref: `#/toneWaves/${no}`,
+						},
+					};
+					voices.push(voice);
+				}
+				break;
 
+			case 2:	// Drum
+				{
+					const voice = {
+						bytes: [...voiceBytes],
+						drumSetNo: no,
+						drumSet: {
+							name: json.drumSets[no].name,
+							$ref: `#/drumSets/${no}`,
+						},
+					};
+					voices.push(voice);
+				}
+				break;
+
+			default:
+				console.assert(false);
+				break;
+			}
+		});
+		const tone = {
+			toneNo,
+			name: String.fromCharCode(...commonBytes.slice(0, 10)),
+			commonBytes: [...commonBytes],
+			voices,
+			_addr: 0x0238a6 + index,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
 		tones.push(tone);
 
 		index += size;
@@ -163,40 +225,61 @@ function makeTones(bytes, json) {
 }
 
 function makeCombis(bytes, json) {
-	console.assert(json && json.tones);
+	console.assert(bytes?.length);
+
 	const combis = [];
 	let index = 0;
 	let combiNo = 0;
 	while (index < bytes.length) {
 		const commonBytes = bytes.slice(index, index + 14);
-		const name = String.fromCharCode(...commonBytes.slice(0, 10));
-
-		const combi = {
-			combiNo, name,
-			commonBytes: [...commonBytes],
-			progs: [],
-		};
-
 		index += 14;
 
+		const tones = [];
 		for (let i = 0; i < 8; i++) {
-			const programBytes = bytes.slice(index, index + 22);
-			const progAddr = makeAddress4byteBE(programBytes.slice(14, 18));
-			const toneOrDrum = addrMap.get(progAddr);
+			const toneBytes = bytes.slice(index, index + 22);
+			const addr = makeAddress4byteBE(toneBytes.slice(14, 18));
 
-			const prog = {
-				...toneOrDrum,
-				bytes: [...programBytes],
-			};
-			combi.progs.push(prog);
+			const toneRef = json.tones.find((tone) => tone._addr === addr);
+			const drumToneRef = json.drums.find((drumTone) => drumTone._addr === addr);
+
+			if (toneRef) {
+				const tone = {
+					toneNo: toneRef.toneNo,
+					tone: {
+						name: toneRef.name,
+						$ref: `#/tones/${toneRef.toneNo}`,
+					},
+					bytes: [...toneBytes],
+				};
+				tones.push(tone);
+			} else if (drumToneRef) {
+				const drumTone = {
+					drumNo: drumToneRef.drumNo,
+					drum: {
+						name: drumToneRef.name,
+						$ref: `#/drums/${drumToneRef.drumNo}`,
+					},
+					bytes: [...toneBytes],
+				};
+				tones.push(drumTone);
+			} else {
+				verifyData(false);
+			}
 
 			index += 22;
 
-			if (makeAddress4byteBE(programBytes.slice(18)) === 0) {
+			if (makeAddress4byteBE(toneBytes.slice(18)) === 0) {
 				break;
 			}
 		}
 
+		const combi = {
+			combiNo,
+			name: String.fromCharCode(...commonBytes.slice(0, 10)),
+			commonBytes: [...commonBytes],
+			progs: tones,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));
 		combis.push(combi);
 
 		combiNo++;

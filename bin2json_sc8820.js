@@ -1,82 +1,66 @@
-import {splitArrayByN, verifyData} from './bin2json_common.js';
+import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
-export function binToJsonForSC8820(allBytes, memMap) {
-	console.assert(allBytes?.length && memMap);
+export const [binToJsonForSC8820, binToJsonForSCD70] = [
+	makeProgDrumTableForSC8820,
+	makeProgDrumTableForSCD70,
+].map((makeProgDrumTable) => {
+	return (allBytes, memMap) => {
+		console.assert(allBytes?.length && memMap);
 
-	const json = {};
+		const json = {
+			samples: null,
+			waves: null,
+			tones: null,
+			tones4: null,
+			combis: null,
+			programs: null,
+			drumSets: null,
+			progDrums: null,
+		};
 
-	if (memMap.samples) {
+		const tablePrograms = makeProgTable(allBytes, memMap);
+		const tableProgDrums = makeProgDrumTable(allBytes, memMap);
+
+		// Samples
+		console.assert(isValidRange(memMap.samples));
 		json.samples = makeSamples(allBytes.slice(...memMap.samples));
-	}
-	if (memMap.waves) {
-		json.waves = makeWaves(allBytes.slice(...memMap.waves));
-	}
-	if (memMap.tones) {
-		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
-	}
-	if (memMap.tones4) {
-		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4), json);
-	}
-	if (memMap.tableMaps && memMap.tableBanks && memMap.tableTones) {
-		const tablePrograms = makeProgTable(allBytes.slice(...memMap.tableMaps), allBytes.slice(...memMap.tableBanks), allBytes.slice(...memMap.tableTones));
-		if (memMap.combis) {
-			json.combis = makeCombis(allBytes.slice(...memMap.combis), tablePrograms);
-		}
-		json.programs = makePrograms(tablePrograms, json);
-	}
-	if (memMap.drumSets && memMap.tableDrumMaps && memMap.tableDrums && memMap.tableDrums2 && memMap.drumNoteNames) {
-		json.drumSets = makeDrumSets(allBytes.slice(...memMap.drumSets), json);
 
-		const tableProgDrums = makeProgDrumTableForSC8820(allBytes.slice(...memMap.tableDrumMaps), allBytes.slice(...memMap.tableDrums), allBytes.slice(...memMap.tableDrums2));
+		// Waves
+		console.assert(isValidRange(memMap.waves));
+		json.waves = makeWaves(allBytes.slice(...memMap.waves));
+
+		// Tones
+		console.assert(isValidRange(memMap.tones));
+		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
+
+		// Tones (4-voice)
+		console.assert(isValidRange(memMap.tones4));
+		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4), json);
+
+		// Legato
+		console.assert(isValidRange(memMap.combis));
+		json.combis = makeCombis(allBytes.slice(...memMap.combis), tablePrograms);
+
+		// Drum Sets
+		console.assert(isValidRange(memMap.drumSets));
+		json.drumSets = makeDrumSets(allBytes, memMap, tableProgDrums, json);
+
+		// Tone Map
+		json.programs = makePrograms(tablePrograms, json);
+
+		// Drum Map
 		json.progDrums = makeProgDrums(tableProgDrums, json);
 
-		addDrumNoteNames(allBytes.slice(...memMap.drumNoteNames), tableProgDrums, json);
-	}
-
-	return json;
-}
-
-export function binToJsonForSCD70(allBytes, memMap) {
-	const json = {};
-
-	if (memMap.samples) {
-		json.samples = makeSamples(allBytes.slice(...memMap.samples));
-	}
-	if (memMap.waves) {
-		json.waves = makeWaves(allBytes.slice(...memMap.waves));
-	}
-	if (memMap.tones) {
-		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
-	}
-	if (memMap.tones4) {
-		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4), json);
-	}
-	if (memMap.tableMaps && memMap.tableBanks && memMap.tableTones) {
-		const tablePrograms = makeProgTable(allBytes.slice(...memMap.tableMaps), allBytes.slice(...memMap.tableBanks), allBytes.slice(...memMap.tableTones));
-		if (memMap.combis) {
-			json.combis = makeCombis(allBytes.slice(...memMap.combis), tablePrograms);
-		}
-		json.programs = makePrograms(tablePrograms, json);
-	}
-	if (memMap.drumSets && memMap.tableDrumMaps && memMap.tableDrums && memMap.drumNoteNames) {
-		json.drumSets = makeDrumSets(allBytes.slice(...memMap.drumSets), json);
-
-		const tableProgDrums = makeProgDrumTableForSCD70(allBytes.slice(...memMap.tableDrumMaps), allBytes.slice(...memMap.tableDrums));
-		json.progDrums = makeProgDrums(tableProgDrums, json);
-
-		addDrumNoteNames(allBytes.slice(...memMap.drumNoteNames), tableProgDrums, json);
-	}
-
-	return json;
-}
+		return json;
+	};
+});
 
 function makeSamples(bytes) {
-	const samplePackets = splitArrayByN(bytes, 22);
+	console.assert(bytes?.length);
 
 	const samples = [];
-	for (let sampleNo = 0; sampleNo < samplePackets.length; sampleNo++) {
-		const sampleBytes = samplePackets[sampleNo];
-
+	const samplePackets = splitArrayByN(bytes, 22);
+	samplePackets.forEach((sampleBytes, sampleNo) => {
 		const sample = {
 			sampleNo,
 			bytes: [...sampleBytes],
@@ -89,78 +73,68 @@ function makeSamples(bytes) {
 //			rate2: sampleBytes.slice(14, 16).reduce((p, c) => (p << 8) | c, 0),
 		};
 //		verifyData(sample.end >= sample.begin);
-
 		samples.push(sample);
-	}
+	});
 
 	return samples;
 }
 
 function makeWaves(bytes) {
-	const wavePackets = splitArrayByN(bytes, 140);
+	console.assert(bytes?.length);
 
 	const waves = [];
-	for (let waveNo = 0; waveNo < wavePackets.length; waveNo++) {
-		const waveBytes = wavePackets[waveNo];
-
-		const name = String.fromCharCode(...waveBytes.slice(0, 12));
+	const wavePackets = splitArrayByN(bytes, 140);
+	wavePackets.forEach((waveBytes, waveNo) => {
 		const notes = waveBytes.slice(12, 44);
 		const sampleNos = splitArrayByN(waveBytes.slice(44, 108), 2).map((e) => (e[0] << 8) | e[1]);
 		const levels = waveBytes.slice(108, 140);
-
-		const wave = {
-			waveNo, name,
-			multiSamples: [],
-		};
 		console.assert(notes.length === 32 && sampleNos.length === 32 && levels.length === 32);
+
+		const multiSamples = [];
 		for (let i = 0; i < 32; i++) {
 			const sampleNo = sampleNos[i];
-			const multiSample = {
+			const sample = {
 				sampleNo: ((sampleNo & 0x8000) === 0) ? sampleNo : sampleNo - 0x10000,
 				low: (i > 0) ? notes[i - 1] + 1 : 0,
 				high: notes[i],
 				level: levels[i],
 			};
-			if (multiSample.sampleNo >= 0) {
-				Object.assign(multiSample, {sample: {$ref: `#/samples/${sampleNo}`}});
+			if (sample.sampleNo >= 0) {
+				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
 			}
+			console.assert(sample.low <= sample.high);
+			multiSamples.push(sample);
 
-			wave.multiSamples.push(multiSample);
-
-			if (multiSample.high >= 0x7f) {
+			if (sample.high === 0x7f) {
 				break;
 			}
 		}
 
+		const wave = {
+			waveNo,
+			name: String.fromCharCode(...waveBytes.slice(0, 12)),
+			multiSamples,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(wave.name));
 		waves.push(wave);
-	}
+	});
 
 	return waves;
 }
 
 function makeTones(bytes, json) {
-	console.assert(json && json.waves);
-	const tonePackets = splitArrayByN(bytes, 256);
+	console.assert(bytes?.length && Array.isArray(json?.waves));
 
 	const tones = [];
-	for (let toneNo = 0; toneNo < tonePackets.length; toneNo++) {
-		const toneBytes = tonePackets[toneNo];
-
+	const tonePackets = splitArrayByN(bytes, 256);
+	tonePackets.forEach((toneBytes, toneNo) => {
 		const commonBytes = toneBytes.slice(0, 36);
 		const voicePackets = [toneBytes.slice(36, 146), toneBytes.slice(146, 256)];
-
-		const name = String.fromCharCode(...commonBytes.slice(0, 12));
 		const bits = commonBytes[22];
 		verifyData(bits === 0b01 || bits === 0b11);
 
-		const tone = {
-			toneNo, name,
-			commonBytes: [...commonBytes],
-			voices: [],
-		};
-
-		for (let i = 0; i < voicePackets.length; i++) {
-			const voiceBytes = voicePackets[i];
+		const voices = [];
+		voicePackets.forEach((voiceBytes, i) => {
 			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
 			const voice = {
 				waveNo,
@@ -173,37 +147,34 @@ function makeTones(bytes, json) {
 					name: json.waves[waveNo].name,
 					$ref: `#/waves/${waveNo}`,
 				};
-				tone.voices.push(voice);
+				voices.push(voice);
 			}
-		}
+		});
 
+		const tone = {
+			toneNo,
+			name: String.fromCharCode(...commonBytes.slice(0, 12)),
+			commonBytes: [...commonBytes],
+			voices,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
 		tones.push(tone);
-	}
+	});
 
 	return tones;
 }
 
 function makeTones4(bytes, json) {
-	console.assert(json && json.waves);
-	const tone4Packets = splitArrayByN(bytes, 488);
+	console.assert(bytes?.length && Array.isArray(json?.waves));
 
 	const tones4 = [];
-	for (let tone4No = 0; tone4No < tone4Packets.length; tone4No++) {
-		const toneBytes = tone4Packets[tone4No];
-
+	const tonePackets = splitArrayByN(bytes, 488);
+	tonePackets.forEach((toneBytes, toneNo) => {
 		const commonBytes = toneBytes.slice(0, 48);
 		const voicePackets = splitArrayByN(toneBytes.slice(48), 110);
 
-		const name = String.fromCharCode(...commonBytes.slice(0, 12));
-
-		const tone4 = {
-			toneNo: tone4No, name,
-			commonBytes: [...commonBytes],
-			voices: [],
-		};
-
-		for (let i = 0; i < voicePackets.length; i++) {
-			const voiceBytes = voicePackets[i];
+		const voices = [];
+		voicePackets.forEach((voiceBytes) => {
 			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
 			const voice = {
 				waveNo,
@@ -213,32 +184,39 @@ function makeTones4(bytes, json) {
 					$ref: `#/waves/${waveNo}`,
 				},
 			};
-			tone4.voices.push(voice);
-		}
+			voices.push(voice);
+		});
 
-		tones4.push(tone4);
-	}
+		const tone = {
+			toneNo,
+			name: String.fromCharCode(...commonBytes.slice(0, 12)),
+			commonBytes: [...commonBytes],
+			voices,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
+		tones4.push(tone);
+	});
 
 	return tones4;
 }
 
 function makeCombis(bytes, tablePrograms) {
-	const combiPackets = splitArrayByN(bytes, 24);
+	console.assert(bytes?.length && tablePrograms);
 
 	const combis = [];
-	for (let combiNo = 0; combiNo < combiPackets.length; combiNo++) {
-		const combiBytes = combiPackets[combiNo];
-
-		const name = String.fromCharCode(...combiBytes.slice(0, 12));
-
+	const combiPackets = splitArrayByN(bytes, 24);
+	combiPackets.forEach((combiBytes, combiNo) => {
+		verifyData(combiBytes[12] === 0x01 && combiBytes[13] === 0x00 && combiBytes[14] === 0x03 && combiBytes[15] === 0x00 && combiBytes[19] === 0x00 && combiBytes[23] === 0x00);
 		const combi = {
-			combiNo, name,
+			combiNo,
+			name: String.fromCharCode(...combiBytes.slice(0, 12)),
 			bytes: [...combiBytes],
 			tones: [
 				{bankL: combiBytes[16], bankM: combiBytes[17], prog: combiBytes[18]},
 				{bankL: combiBytes[20], bankM: combiBytes[21], prog: combiBytes[22]},
 			],
 		};
+		verifyData(/^[\x20-\x7f]*$/u.test(combi.name));
 		for (const tone of combi.tones) {
 			const toneNo = tablePrograms(tone.prog, tone.bankM, tone.bankL) & 0x1fff;
 			tone.toneNo = toneNo;
@@ -246,29 +224,23 @@ function makeCombis(bytes, tablePrograms) {
 				$ref: `#/tones/${toneNo}`,
 			};
 		}
-
 		combis.push(combi);
-	}
+	});
 
 	return combis;
 }
 
-function makeDrumSets(bytes, json) {
-	console.assert(json && json.tones);
-	const drumSetPackets = splitArrayByN(bytes, 1292);
+function makeDrumSets(allBytes, memMap, tableProgDrums, json) {
+	console.assert(allBytes?.length && memMap && tableProgDrums && Array.isArray(json?.tones));
 
 	const drumSets = [];
-	for (let drumSetNo = 0; drumSetNo < drumSetPackets.length; drumSetNo++) {
-		const drumSetBytes = drumSetPackets[drumSetNo];
-
+	console.assert(isValidRange(memMap.drumSets));
+	const drumSetPackets = splitArrayByN(allBytes.slice(...memMap.drumSets), 1292);
+	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
 		const tones = splitArrayByN(drumSetBytes.slice(0, 256), 2).map((e) => (e[0] << 8) | e[1]);
 		const [levels, pitches, groups, panpots, reverbs, choruses, delays, rxBits] = splitArrayByN(drumSetBytes.slice(256, 1280), 128);
-		const name = String.fromCharCode(...drumSetBytes.slice(1280));
 
-		const drumSet = {
-			drumSetNo, name,
-			notes: {},
-		};
+		const notes = {};
 		for (let noteNo = 0; noteNo < 128; noteNo++) {
 			const toneNo = tones[noteNo];
 			if (toneNo === 0xffff) {
@@ -291,11 +263,34 @@ function makeDrumSets(bytes, json) {
 				isRxNoteOn:  ((rxBits[noteNo] & 0x10) !== 0),
 				isRxNoteOff: ((rxBits[noteNo] & 0x01) !== 0),
 			};
-			drumSet.notes[noteNo] = note;
+			notes[noteNo] = note;
 		}
 
+		const drumSet = {
+			drumSetNo,
+			name: String.fromCharCode(...drumSetBytes.slice(1280)),
+			notes,
+		};
+		verifyData(/^[\x20-\x7f]*$/u.test(drumSet.name));
 		drumSets.push(drumSet);
-	}
+	});
+
+	// Adds drum note names.
+	console.assert(isValidRange(memMap.drumNoteNames));
+	const drumNoteNamePackets = splitArrayByN(allBytes.slice(...memMap.drumNoteNames), 20);
+	drumNoteNamePackets.forEach((drumNoteNameBytes) => {
+		verifyData(drumNoteNameBytes[0] === 0x00);
+		const [bankL, prog1, noteNo] = drumNoteNameBytes.slice(1, 4);
+		const name = String.fromCharCode(...drumNoteNameBytes.slice(4, 14 /* 16 */));	// Note: Some drum names have unnecessary NUL terminator at the end of string.
+
+		const drumSetNo = tableProgDrums(prog1 - 1, 0, bankL);
+		const drumSet = drumSets[drumSetNo];
+		if (drumSet.notes[noteNo]) {
+			drumSet.notes[noteNo].name = name;
+		} else {
+			verifyData(name === '--------  ');
+		}
+	});
 
 	return drumSets;
 }
@@ -306,7 +301,7 @@ const seqBankL = [
 ];
 
 function makePrograms(tablePrograms, json) {
-	console.assert(json && json.tones && json.tones4 && json.combis);
+	console.assert(tablePrograms && Array.isArray(json?.tones) && Array.isArray(json?.tones4) && Array.isArray(json?.combis));
 
 	const programs = [];
 	for (const bankL of seqBankL) {
@@ -375,7 +370,7 @@ function makePrograms(tablePrograms, json) {
 }
 
 function makeProgDrums(tableProgDrums, json) {
-	console.assert(json && json.drumSets);
+	console.assert(tableProgDrums && Array.isArray(json?.drumSets));
 
 	const progDrums = [];
 	for (const bankL of seqBankL) {
@@ -400,17 +395,17 @@ function makeProgDrums(tableProgDrums, json) {
 	return progDrums;
 }
 
-function makeProgTable(mapBytes, bankBytes, toneBytes) {
-	// tableTones[bankNo][prog] => toneNo
-	const tonePackets = splitArrayByN(toneBytes, 256);
-	const tableTones = tonePackets.map((e) => splitArrayByN(e, 2).map((e) => (e[0] << 8) | e[1]));
+function makeProgTable(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
 
 	// tableMaps[bankL] => mapNo
-	const tableMaps = mapBytes;
+	console.assert(isValidRange(memMap.tableMaps));
+	const tableMaps = allBytes.slice(...memMap.tableMaps);
 
 	// tableBanks[mapNo][bankM] => bankNo
+	const bankBytes = allBytes.slice(...memMap.tableBanks);
 	const packetSize = bankBytes.length / 11;
-	const elemSize = packetSize / 128;
+	const elemSize = packetSize / 128;	// SC-8820: 1, SC-D70/SK-500: 2
 	console.assert(Number.isInteger(packetSize) && Number.isInteger(elemSize));
 	const tableBanks = splitArrayByN(bankBytes, packetSize).map((e) => e.reduce((p, _, i, a) => {
 		if (i % elemSize === 0) {
@@ -419,7 +414,11 @@ function makeProgTable(mapBytes, bankBytes, toneBytes) {
 		return p;
 	}, []));
 
-	return ((tableTones, tableMaps, tableBanks) => (prog, bankM, bankL) => {
+	// tableTones[bankNo][prog] => toneNo
+	console.assert(isValidRange(memMap.tableTones));
+	const tableTones = splitArrayByN(allBytes.slice(...memMap.tableTones), 256).map((e) => splitArrayByN(e, 2).map((e) => (e[0] << 8) | e[1]));
+
+	return ((tableMaps, tableBanks, tableTones) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
 		const mapNo = tableMaps[bankL];
 		if (mapNo === 0xff) {
@@ -430,23 +429,23 @@ function makeProgTable(mapBytes, bankBytes, toneBytes) {
 			return 0xffff;
 		}
 		return tableTones[bankNo][prog];
-	})(tableTones, tableMaps, tableBanks);
+	})(tableMaps, tableBanks, tableTones);
 }
 
-function makeProgDrumTableForSC8820(mapBytes, drumBytes, drumBytes2) {
+function makeProgDrumTableForSC8820(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
 	// tableDrumMaps[bankL] => mapNo
-	const tableDrumMaps = mapBytes;
+	console.assert(isValidRange(memMap.tableDrumMaps));
+	const tableDrumMaps = allBytes.slice(...memMap.tableDrumMaps);
 
 	// tableDrums[mapNo][prog] => drumIndex
-	const tableDrums = splitArrayByN(drumBytes, 128);
+	console.assert(isValidRange(memMap.tableDrums));
+	const tableDrums = splitArrayByN(allBytes.slice(...memMap.tableDrums), 128);
 
 	// tableDrums2[drumIndex] => drumNo
-	const tableDrums2 = drumBytes2.reduce((p, _, i, a) => {
-		if (i % 2 === 0) {
-			p.push((a[i] << 8) | a[i + 1]);
-		}
-		return p;
-	}, []);
+	console.assert(isValidRange(memMap.tableDrums2));
+	const tableDrums2 = splitArrayByN(allBytes.slice(...memMap.tableDrums2), 2).map((e) => (e[0] << 8) | e[1]);
 
 	return ((tableDrumMaps, tableDrums, tableDrums2) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
@@ -462,17 +461,16 @@ function makeProgDrumTableForSC8820(mapBytes, drumBytes, drumBytes2) {
 	})(tableDrumMaps, tableDrums, tableDrums2);
 }
 
-function makeProgDrumTableForSCD70(mapBytes, drumBytes) {
+function makeProgDrumTableForSCD70(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
 	// tableDrumMaps[bankL] => mapNo
-	const tableDrumMaps = mapBytes;
+	console.assert(isValidRange(memMap.tableDrumMaps));
+	const tableDrumMaps = allBytes.slice(...memMap.tableDrumMaps);
 
 	// tableDrums[mapNo][prog] => drumNo
-	const tableDrums = splitArrayByN(drumBytes.reduce((p, _, i, a) => {
-		if (i % 2 === 0) {
-			p.push((a[i] << 8) | a[i + 1]);
-		}
-		return p;
-	}, []), 128);
+	console.assert(isValidRange(memMap.tableDrums));
+	const tableDrums = splitArrayByN(allBytes.slice(...memMap.tableDrums), 256).map((e) => splitArrayByN(e, 2).map((e) => (e[0] << 8) | e[1]));
 
 	return ((tableDrumMaps, tableDrums) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
@@ -482,19 +480,4 @@ function makeProgDrumTableForSCD70(mapBytes, drumBytes) {
 		}
 		return tableDrums[mapNo][prog];
 	})(tableDrumMaps, tableDrums);
-}
-
-function addDrumNoteNames(bytes, tableProgDrums, json) {
-	const tableDrumNoteNames = splitArrayByN(bytes, 20);
-	for (const tableDrumNoteName of tableDrumNoteNames) {
-		const [_, bankL, prog1, noteNo] = tableDrumNoteName.slice(0, 4);
-		const name = String.fromCharCode(...tableDrumNoteName.slice(4, 14 /* 16 */));	// Note: Some drum names have unnecessary NUL terminator at the end of string.
-
-		const drumSetNo = tableProgDrums(prog1 - 1, 0, bankL);
-		const drumSet = json.drumSets[drumSetNo];
-
-		if (drumSet.notes[noteNo]) {
-			drumSet.notes[noteNo].name = name;
-		}
-	}
 }

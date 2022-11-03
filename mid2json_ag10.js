@@ -253,7 +253,8 @@ const toneWaveNames = [
 ];
 
 export function midToJsonForAG10(files) {
-	const tones = toneNames.map((name, toneNo) => ({toneNo, name}));
+	// Tones
+	const tones = new Array(toneNames.length).fill();
 	for (const [fileName, bytes] of Object.entries(files)) {
 		const toneNo = Number(fileName.slice(0, 3)) - 1;
 		if (!(0 <= toneNo && toneNo < 128)) {
@@ -284,12 +285,13 @@ export function midToJsonForAG10(files) {
 				continue;
 			}
 
+			// Makes a tone data.
 			const commonBytes = toneBytes.slice(0, 26);
 			const voiceNum = (commonBytes[0] === 0x01) ? 2 : 1;
 			const voices = [];
 			for (let i = 0; i < voiceNum; i++) {
 				const toneWaveNo = commonBytes[1 + i * 2];
-				voices.push({
+				const voice = {
 					toneWaveNo,
 					toneWave: {
 						name: toneWaveNames[toneWaveNo],
@@ -297,12 +299,22 @@ export function midToJsonForAG10(files) {
 					},
 					octave: commonBytes[2 + i * 2],
 					bytes: [...toneBytes.slice(26 + i * 44, 70 + i * 44)],
-				});
+				};
+				voices.push(voice);
 			}
 
-			tones[toneNo].commonBytes = commonBytes;
-			tones[toneNo].voices      = voices;
+			const tone = {
+				toneNo,
+				name: toneNames[toneNo],
+				commonBytes,
+				voices,
+			};
+			tones[toneNo] = tone;
 		}
+	}
+
+	if (tones.some((e) => !e)) {
+		console.warn('Missing files');
 	}
 
 	return {

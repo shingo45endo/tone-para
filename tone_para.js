@@ -384,13 +384,13 @@ try {
 
 				const json = binToJsonForNS5R(files, {
 					// PROG
-//					others:   [0x000174, 0x000276],
-					drums:    [0x002e3c, 0x0038a6],
-					tones:    [0x0038a6, 0x02b40e],
-					combis:   [0x02b40e, 0x036b36],
+//					others:    [0x000174, 0x000276],
+					drumTones: [0x002e3c, 0x0038a6],
+					tones:     [0x0038a6, 0x02b40e],
+					combis:    [0x02b40e, 0x036b36],
 
 					// PCM
-					samples:        [0x0106a6, 0x011b46],
+					waveNames:      [0x0106a6, 0x011b46],
 					drumSamples:    [0x011b46, 0x0133da],
 					drumSetNames:   [0x013852, 0x0139d8],
 					tableDrumSets:  [0x0139da, 0x013a8a],
@@ -475,7 +475,7 @@ try {
 		case 'sk-500':
 		case 'jv-1010':
 			{
-				const {root, dir, name, ext} = path.parse(filePath);
+				const {dir, name} = path.parse(filePath);
 				const m = name.match(/^([^\d]*)(\d+)$/u);
 				if (!m) {
 					throw new Error(`Invalid file name: ${name}`);
@@ -507,13 +507,9 @@ try {
 			}
 			break;
 
-		case 'ns5r':
-			console.warn('Not implemented yet.');
-			break;
-
 		case 'ag-10':
 			{
-				const {root, dir, name, ext} = path.parse(filePath);
+				const {dir} = path.parse(filePath);
 				const fileNames = fs.readdirSync(dir).filter((e) => /^\d{3}.*?\.AG/ui.test(path.basename(e)));
 
 				(async () => {
@@ -534,6 +530,7 @@ try {
 		case 'sc-88pro':
 		case 'cm-32l':
 		case 'tg300':
+		case 'ns5r':
 		case 'gmega':
 		case 'gmega-lx':
 		case 'gz-70sp':

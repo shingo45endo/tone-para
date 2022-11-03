@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange} from './bin2json_common.js';
+import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
 const waveNames = [
 	'SIN',
@@ -260,7 +260,7 @@ const waveNames = [
 ];
 console.assert(waveNames.length === 256);
 
-const drumToneWaveNames = [
+const drumWaveNames = [
 	'BASIC 1',
 	'BASIC 2',
 	'BASIC 3',
@@ -518,41 +518,49 @@ const drumToneWaveNames = [
 	'OMNIBUS 6 (Reverse)',
 	'OMNIBUS 7 (Reverse)',
 ];
-console.assert(drumToneWaveNames.length === 256);
+console.assert(drumWaveNames.length === 256);
 
 export function binToJsonForGMega(files, memMap) {
-	console.assert(files?.PROG && files?.PCM);
-	console.assert(memMap && Object.values(memMap).every((range) => isValidRange(range)));
+	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
 
 	const json = {};
 
 	// Waves
 	json.waves = waveNames.map((name, waveNo) => ({waveNo, name}));
-	json.drumWaves = drumToneWaveNames.map((name, drumWaveNo) => ({drumWaveNo, name}));
+
+	// Drum Waves
+	json.drumWaves = drumWaveNames.map((name, drumWaveNo) => ({drumWaveNo, name}));
 
 	// Tones
 	json.tonesGM = makeTones(files, memMap, 'GM');
 	json.tonesSP = makeTones(files, memMap, 'SP');
+
+	// Drum Tones
 	json.drumTonesGM = makeDrumTones(files, memMap, 'GM');
 	json.drumTonesSP = makeDrumTones(files, memMap, 'SP');
 
 	// Drum Sets
-	console.assert(memMap.tableDrumNotes);
+	console.assert(isValidRange(memMap.tableDrumNotes));
 	json.drumSets = makeDrumSets(files.PROG.slice(...memMap.tableDrumNotes), json);
 
 	return json;
 }
 
 function makeTones(files, memMap, kind) {
+	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
+
 	const toneNamesRange       = memMap[`toneNames${kind}`];
 	const tableToneParamsRange = memMap[`tableToneParams${kind}`];
 	const toneParamsRange      = memMap[`toneParams${kind}`];
-	console.assert(toneNamesRange && tableToneParamsRange && toneParamsRange);
+	console.assert(isValidRange(toneNamesRange) && isValidRange(tableToneParamsRange) && isValidRange(toneParamsRange));
 
 	const toneNames = splitArrayByN(files.PROG.slice(...toneNamesRange), 8).map((bytes) => String.fromCharCode(...bytes));
 	console.assert(toneNames.length === 135);
+	verifyData(toneNames.every((e) => /^[\x20-\x7f]*$/u.test(e)));
+
 	const tableToneParams = files.PROG.slice(...tableToneParamsRange);
 	console.assert(tableToneParams.length === 128);
+
 	const toneParamsPackets = splitArrayByN(files.PCM.slice(...toneParamsRange), 32);
 	console.assert(toneParamsPackets.length === 192);
 
@@ -575,78 +583,85 @@ function makeTones(files, memMap, kind) {
 				},
 			};
 		});
-
-		tones.push({
+		const tone = {
 			toneNo,
 			name: toneNames[toneNo],
 			voices,
-		});
+		};
+		tones.push(tone);
 	}
 	for (let toneNo = tableToneParams.length; toneNo < toneNames.length; toneNo++) {
-		tones.push({
+		const tone = {
 			toneNo,
 			name: toneNames[toneNo],
 			voices: [],
-		});
+		};
+		tones.push(tone);
 	}
+	console.assert(tones.length === toneNames.length);
 
 	return tones;
 }
 
 function makeDrumTones(files, memMap, kind) {
-	const drumToneParamsRange = memMap[`drumToneParams${kind}`];
-	console.assert(drumToneParamsRange);
+	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
 
+	const drumToneParamsRange = memMap[`drumToneParams${kind}`];
+	console.assert(isValidRange(drumToneParamsRange));
+
+	console.assert(isValidRange(memMap.drumToneNames));
 	const drumToneNames = splitArrayByN(files.PROG.slice(...memMap.drumToneNames), 8).map((bytes) => String.fromCharCode(...bytes));
 	console.assert(drumToneNames.length === 128);
-	const drumToneParamsPackets = splitArrayByN(files.PCM.slice(...drumToneParamsRange), 32);
-	console.assert(drumToneParamsPackets.length === 128);
+	verifyData(drumToneNames.every((e) => /^[\x20-\x7f]*$/u.test(e)));
 
 	const drumTones = [];
-	for (let drumToneNo = 0; drumToneNo < 128; drumToneNo++) {
-		const drumToneParamsBytes = drumToneParamsPackets[drumToneNo];
+	const drumToneParamsPackets = splitArrayByN(files.PCM.slice(...drumToneParamsRange), 32);
+	console.assert(drumToneParamsPackets.length === 128);
+	drumToneParamsPackets.forEach((drumToneParamsBytes, drumToneNo) => {
 		const drumWaveNo = drumToneParamsBytes[0];
-		const voices = [{
+		const voice = {
 			drumWaveNo,
 			bytes: [...drumToneParamsBytes],
 			drumWave: {
-				name: drumToneWaveNames[drumWaveNo],
+				name: drumWaveNames[drumWaveNo],
 				$ref: `#/drumWaves/${drumWaveNo}`,
 			},
-		}];
-
-		drumTones.push({
+		};
+		const drumTone = {
 			drumToneNo,
 			name: drumToneNames[drumToneNo],
-			voices,
-		});
-	}
+			voices: [voice],
+		};
+		drumTones.push(drumTone);
+	});
 
 	return drumTones;
 }
 
 function makeDrumSets(bytes, json) {
-	const drumSetPackets = splitArrayByN(bytes, 128);
+	console.assert(bytes?.length && Array.isArray(json?.tonesGM) && Array.isArray(json?.drumTonesGM));
 
-	console.assert(Array.isArray(json.tonesGM) && Array.isArray(json.drumTonesGM));
 	const drumSets = [];
+	const drumSetPackets = splitArrayByN(bytes, 128);
 	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
-		const notes = drumSetBytes.reduce((results, drumToneNo, noteNo) => {
-			results[noteNo] = {
+		const notes = {};
+		drumSetBytes.forEach((drumToneNo, noteNo) => {
+			const note = {
 				drumToneNo,
 				drumTone: {
 					name: json.drumTonesGM[drumToneNo].name,
 					$ref: `#/drumTonesGM/${drumToneNo}`,
 				},
 			};
-			return results;
-		}, {});
+			notes[noteNo] = note;
+		});
 
-		drumSets.push({
+		const drumSet = {
 			drumSetNo,
 			name: json.tonesGM[128 + drumSetNo].name,
 			notes,
-		});
+		};
+		drumSets.push(drumSet);
 	});
 
 	return drumSets;
