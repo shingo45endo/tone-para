@@ -548,7 +548,7 @@ try {
 }
 
 function myStringify(json) {
-	return JSON.stringify(json, replacer, 2).replace(/(Bytes": )"(.*?)"/uig, '$1[$2]') + '\n';
+	return JSON.stringify(json, replacer, '\t').replace(/(Bytes": )"(.*?)"/uig, '$1[$2]') + '\n';
 
 	function replacer(key, value) {
 		if (/.*Bytes$/ui.test(key)) {
