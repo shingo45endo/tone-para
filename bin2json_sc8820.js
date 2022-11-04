@@ -129,26 +129,24 @@ function makeTones(bytes, json) {
 	const tonePackets = splitArrayByN(bytes, 256);
 	tonePackets.forEach((toneBytes, toneNo) => {
 		const commonBytes = toneBytes.slice(0, 36);
-		const voicePackets = [toneBytes.slice(36, 146), toneBytes.slice(146, 256)];
-		const bits = commonBytes[22];
-		verifyData(bits === 0b01 || bits === 0b11);
+		const numVoices = {0b01: 1, 0b11: 2}[commonBytes[22]];
+		verifyData(numVoices === 1 || numVoices === 2);
+		const voicePackets = splitArrayByN(toneBytes.slice(36, 36 + 110 * numVoices), 110);
 
 		const voices = [];
-		voicePackets.forEach((voiceBytes, i) => {
+		voicePackets.forEach((voiceBytes) => {
+			verifyData(voiceBytes[4] === 0x40);
+			verifyData([5, 7, 20, 37, 38, 39, 40].every((e) => voiceBytes[e] === 0x00));
 			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
 			const voice = {
-				waveNo,
 				bytes: [...voiceBytes],
-			};
-			verifyData(voice.bytes[4] === 64);
-			verifyData([5, 7, 20, 37, 38, 39, 40].every((e) => voice.bytes[e] === 0));
-			if ((bits & (1 << i)) !== 0) {
-				voice.wave = {
+				waveNo,
+				wave: {
 					name: json.waves[waveNo].name,
 					$ref: `#/waves/${waveNo}`,
-				};
-				voices.push(voice);
-			}
+				},
+			};
+			voices.push(voice);
 		});
 
 		const tone = {
@@ -177,8 +175,8 @@ function makeTones4(bytes, json) {
 		voicePackets.forEach((voiceBytes) => {
 			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
 			const voice = {
-				waveNo,
 				bytes: [...voiceBytes],
+				waveNo,
 				wave: {
 					name: json.waves[waveNo].name,
 					$ref: `#/waves/${waveNo}`,
