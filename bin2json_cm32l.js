@@ -264,9 +264,9 @@ export function binToJsonForCM32L(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	const json = {
+		samples: null,
 		tones: null,
 		drumSet: null,
-		samples: null,
 	};
 
 	// Samples
@@ -282,6 +282,27 @@ export function binToJsonForCM32L(allBytes, memMap) {
 	json.drumSet = makeDrumSet(allBytes.slice(...memMap.drumSet), json);
 
 	return json;
+}
+
+function makeSamples(bytes) {
+	console.assert(bytes?.length);
+
+	const samples = [];
+	const samplePackets = splitArrayByN(bytes, 4);
+	samplePackets.forEach((sampleBytes, sampleNo) => {
+		const sample = {
+			sampleNo,
+			name:      sampleNames[sampleNo],
+			address:   sampleBytes[0] * 0x0800,
+			length:    0x800 << ((sampleBytes[1] & 0x70) >> 4),
+			pitch:     (sampleBytes[3] << 8) | sampleBytes[2],
+			isLooped:  (sampleBytes[1] & 0x80) !== 0,
+			isTunable: (sampleBytes[1] & 0x01) === 0,
+		};
+		samples.push(sample);
+	});
+
+	return samples;
 }
 
 function makeTones(allBytes, tonesRanges, json) {
@@ -339,11 +360,11 @@ function makeTones(allBytes, tonesRanges, json) {
 
 		const tone = {
 			toneNo,
-			name: String.fromCharCode(...commonBytes.slice(0, 10))/*.replace(/\x00/ug, ' ')*/,	// TODO: Enable
+			name: String.fromCharCode(...commonBytes.slice(0, 10)).replace(/\x00/ug, ' '),
 			commonBytes: [...commonBytes],
 			voices,
 		};
-//		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
+		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
 		tones.push(tone);
 
 		index += size;
@@ -362,15 +383,15 @@ function makeDrumSet(bytes, json) {
 		const noteNo = 24 + i;
 		const toneNo = 128 + drumNoteBytes[0];
 		const note = {
+			bytes: [...drumNoteBytes],
+			level: drumNoteBytes[1],
+			panpot: drumNoteBytes[2],
+			isReverbOn: (drumNoteBytes[3] !== 0x00),
 			toneNo,
 			tone: {
 				name: json.tones[toneNo].name,
 				$ref: `#/tones/${toneNo}`,
 			},
-			bytes: [...drumNoteBytes],
-			level: drumNoteBytes[1],
-			panpot: drumNoteBytes[2],
-			isReverbOn: (drumNoteBytes[3] !== 0x00),
 		};
 		notes[noteNo] = note;
 	});
@@ -380,25 +401,4 @@ function makeDrumSet(bytes, json) {
 	};
 
 	return drumSet;
-}
-
-function makeSamples(bytes) {
-	console.assert(bytes?.length);
-
-	const samples = [];
-	const samplePackets = splitArrayByN(bytes, 4);
-	samplePackets.forEach((sampleBytes, sampleNo) => {
-		const sample = {
-			sampleNo,
-			name:      sampleNames[sampleNo],
-			address:   sampleBytes[0] * 0x0800,
-			length:    0x800 << ((sampleBytes[1] & 0x70) >> 4),
-			pitch:     (sampleBytes[3] << 8) | sampleBytes[2],
-			isLooped:  (sampleBytes[1] & 0x80) !== 0,
-			isTunable: (sampleBytes[1] & 0x01) === 0,
-		};
-		samples.push(sample);
-	});
-
-	return samples;
 }

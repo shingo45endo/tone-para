@@ -292,13 +292,13 @@ export function midToJsonForAG10(files) {
 			for (let i = 0; i < voiceNum; i++) {
 				const waveNo = commonBytes[1 + i * 2];
 				const voice = {
+					octave: commonBytes[2 + i * 2],
+					bytes: [...toneBytes.slice(26 + i * 44, 70 + i * 44)],
 					waveNo,
 					wave: {
 						name: waveNames[waveNo],
 						$ref: `#/waves/${waveNo}`,
 					},
-					octave: commonBytes[2 + i * 2],
-					bytes: [...toneBytes.slice(26 + i * 44, 70 + i * 44)],
 				};
 				voices.push(voice);
 			}

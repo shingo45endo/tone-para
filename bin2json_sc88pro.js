@@ -3,7 +3,16 @@ import {splitArrayByN, removePrivateProp, isValidRange, verifyData} from './bin2
 export function binToJsonForSC88Pro(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
-	const json = makeBasicJson(allBytes, memMap);
+	const json = {
+		samples:  null,
+		waves:    null,
+		tones:    null,
+		combis:   null,
+		drumSets: null,
+		toneMaps: null,
+		drumMaps: null,
+		...makeBasicJson(allBytes, memMap),
+	};
 
 	const tableToneMap = makeTableOfToneMapForSC88Pro(allBytes, memMap);
 	const tableDrumMap = makeTableOfDrumMapForSC88Pro(allBytes, memMap);
@@ -25,7 +34,15 @@ export function binToJsonForSC88Pro(allBytes, memMap) {
 export function binToJsonForSC88(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
-	const json = makeBasicJson(allBytes, memMap);
+	const json = {
+		samples: null,
+		waves: null,
+		tones: null,
+		drumSets: null,
+		toneMaps: null,
+		drumMaps: null,
+		...makeBasicJson(allBytes, memMap),
+	};
 
 	// Tone Map
 	const tableToneMap = makeTableOfToneMapForSC88(allBytes, memMap);
@@ -126,12 +143,12 @@ function makeWaves(bytes, json) {
 			}
 
 			const sampleSlot = {
-				sampleNo,
 				low: (sampleSlots.length > 0) ? sampleSlots[sampleSlots.length - 1].high + 1 : 0,
 				high: sampleSlotBytes[0],
 				b01: sampleSlotBytes[1],
 				b02: sampleSlotBytes[2],
 				b03: sampleSlotBytes[3],
+				sampleNo,
 			};
 			if (sampleSlot.sampleNo >= 0) {
 				Object.assign(sampleSlot, {sample: {$ref: `#/samples/${sampleNo}`}});
@@ -166,7 +183,7 @@ function makeTones(allBytes, tonesRanges, json) {
 
 		let index = 0;
 		while (index < regionBytes.length) {
-			const numVoices = {0x01: 1, 0x03: 2}[regionBytes[index + 31] & 0x7f];
+			const numVoices = {0b01: 1, 0b11: 2}[regionBytes[index + 31] & 0x7f];
 			verifyData(numVoices === 1 || numVoices === 2);
 			const size = 34 + 148 * numVoices;
 			const toneBytes = regionBytes.slice(index, index + size);
@@ -180,8 +197,8 @@ function makeTones(allBytes, tonesRanges, json) {
 				const waveOffset = (voiceBytes[0] << 8) | voiceBytes[1];
 				const waveNo = json.waves.find((wave) => wave._offset === waveOffset).waveNo;
 				const voice = {
-					waveNo,
 					bytes: [...voiceBytes],
+					waveNo,
 					wave: {
 						name: json.waves[waveNo].name,
 						$ref: `#/waves/${waveNo}`,
@@ -229,11 +246,6 @@ function makeDrumSets(allBytes, memMap, json) {
 				const toneNo = json.tones.find((tone) => tone._addr === (toneAddr & 0x0fffff))?.toneNo;
 				verifyData(Number.isInteger(toneNo));
 				const note = {
-					toneNo,
-					tone: {
-						name: json.tones[toneNo].name,
-						$ref: `#/tones/${toneNo}`,
-					},
 					level:  levels[noteNo],
 					pitch:  pitches[noteNo],
 					group:  groups[noteNo],
@@ -242,6 +254,11 @@ function makeDrumSets(allBytes, memMap, json) {
 					chorus: choruses[noteNo],
 					isRxNoteOn:  ((rxBits[noteNo] & 0x10) !== 0),
 					isRxNoteOff: ((rxBits[noteNo] & 0x01) !== 0),
+					toneNo,
+					tone: {
+						name: json.tones[toneNo].name,
+						$ref: `#/tones/${toneNo}`,
+					},
 				};
 				notes[noteNo] = note;
 			}
@@ -279,7 +296,6 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 	const combis = [];
 	combiPackets.forEach((combiBytes, combiNo) => {
 		verifyData(combiBytes[12] === 0x01 && combiBytes[13] === 0x00 && combiBytes[14] === 0x08 && combiBytes[15] === 0x03 && combiBytes[16] === 0x00 && combiBytes[23] === 0xff);
-
 		const toneSlots = [
 			{bankL: combiBytes[17], bankM: combiBytes[18], prog: combiBytes[19]},
 			{bankL: combiBytes[20], bankM: combiBytes[21], prog: combiBytes[22]},
@@ -300,7 +316,6 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 		const combi = {
 			combiNo,
 			name: String.fromCharCode(...combiBytes.slice(0, 12)),
-			bytes: [...combiBytes],
 			toneSlots,
 			_addr: addrBase + 24 * combiNo,
 		};
@@ -309,6 +324,100 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 	});
 
 	return combis;
+}
+
+const seqBankL = [
+	...[...new Array(5)].map((_, i) => i).reverse(),	// 4, 3, 2, 1, 0
+	...[...new Array(128)].map((_, i) => i).slice(5),	// 5, 6, ..., 127
+];
+
+function makeToneMaps(tableToneMap, json) {
+	console.assert(tableToneMap && Array.isArray(json?.tones));
+
+	const toneMaps = [];
+	for (const bankL of seqBankL) {
+		for (let prog = 0; prog < 128; prog++) {
+			for (let bankM = 0; bankM < 125; bankM++) {
+				const toneProg = makeToneProg(prog, bankM, bankL);
+				if (toneProg) {
+					toneMaps.push(toneProg);
+				}
+			}
+		}
+	}
+	for (const bankL of seqBankL) {
+		for (let bankM = 125; bankM < 128; bankM++) {
+			for (let prog = 0; prog < 128; prog++) {
+				const toneProg = makeToneProg(prog, bankM, bankL);
+				if (toneProg) {
+					toneMaps.push(toneProg);
+				}
+			}
+		}
+	}
+
+	return toneMaps;
+
+	function makeToneProg(prog, bankM, bankL) {
+		const addr = tableToneMap(prog, bankM, bankL);
+		if (addr === 0xffffff) {
+			return null;
+		}
+
+		const tone = json.tones.find((tone) => tone._addr === (addr & 0x0fffff));
+		const combi = json.combis?.find((combi) => combi._addr === (addr & 0x0fffff));
+
+		if (tone) {
+			const toneNo = tone.toneNo;
+			return {
+				bankL, prog, bankM,
+				toneNo,
+				tone: {
+					name: tone.name,
+					$ref: `#/tones/${toneNo}`,
+				},
+			};
+		} else if (combi) {
+			const combiNo = combi.combiNo;
+			return {
+				bankL, prog, bankM,
+				combiNo,
+				combi: {
+					name: combi.name,
+					$ref: `#/combis/${combiNo}`,
+				},
+			};
+		} else {
+			verifyData(false);
+			return null;
+		}
+	}
+}
+
+function makeDrumMaps(tableDrumMap, json) {
+	console.assert(tableDrumMap && Array.isArray(json?.drumSets));
+
+	const drumMaps = [];
+	for (const bankL of seqBankL) {
+		for (let prog = 0; prog < 128; prog++) {
+			const drumSetNo = tableDrumMap(prog, 0, bankL);
+			if (drumSetNo < 0) {
+				continue;
+			}
+
+			const drumProg = {
+				bankL, prog,
+				drumSetNo,
+				drumSet: {
+					name: json.drumSets[drumSetNo].name,
+					$ref: `#/drumSets/${drumSetNo}`,
+				},
+			};
+			drumMaps.push(drumProg);
+		}
+	}
+
+	return drumMaps;
 }
 
 function makeTableOfToneMapForSC88Pro(allBytes, memMap) {
@@ -413,98 +522,4 @@ function makeTableOfDrumMapForSC88(allBytes, memMap) {
 		}
 		return drumSetNo;
 	})(tableDrums);
-}
-
-const seqBankL = [
-	...[...new Array(5)].map((_, i) => i).reverse(),	// 4, 3, 2, 1, 0
-	...[...new Array(128)].map((_, i) => i).slice(5),	// 5, 6, ..., 127
-];
-
-function makeToneMaps(tableToneMap, json) {
-	console.assert(tableToneMap && Array.isArray(json?.tones));
-
-	const toneMaps = [];
-	for (const bankL of seqBankL) {
-		for (let prog = 0; prog < 128; prog++) {
-			for (let bankM = 0; bankM < 125; bankM++) {
-				const toneProg = makeToneProg(prog, bankM, bankL);
-				if (toneProg) {
-					toneMaps.push(toneProg);
-				}
-			}
-		}
-	}
-	for (const bankL of seqBankL) {
-		for (let bankM = 125; bankM < 128; bankM++) {
-			for (let prog = 0; prog < 128; prog++) {
-				const toneProg = makeToneProg(prog, bankM, bankL);
-				if (toneProg) {
-					toneMaps.push(toneProg);
-				}
-			}
-		}
-	}
-
-	return toneMaps;
-
-	function makeToneProg(prog, bankM, bankL) {
-		const addr = tableToneMap(prog, bankM, bankL);
-		if (addr === 0xffffff) {
-			return null;
-		}
-
-		const tone = json.tones.find((tone) => tone._addr === (addr & 0x0fffff));
-		const combi = json.combis?.find((combi) => combi._addr === (addr & 0x0fffff));
-
-		if (tone) {
-			const toneNo = tone.toneNo;
-			return {
-				bankL, prog, bankM,
-				toneNo,
-				tone: {
-					name: tone.name,
-					$ref: `#/tones/${toneNo}`,
-				},
-			};
-		} else if (combi) {
-			const combiNo = combi.combiNo;
-			return {
-				bankL, prog, bankM,
-				combiNo,
-				combi: {
-					name: combi.name,
-					$ref: `#/combis/${combiNo}`,
-				},
-			};
-		} else {
-			verifyData(false);
-			return null;
-		}
-	}
-}
-
-function makeDrumMaps(tableDrumMap, json) {
-	console.assert(tableDrumMap && Array.isArray(json?.drumSets));
-
-	const drumMaps = [];
-	for (const bankL of seqBankL) {
-		for (let prog = 0; prog < 128; prog++) {
-			const drumNo = tableDrumMap(prog, 0, bankL);
-			if (drumNo < 0) {
-				continue;
-			}
-
-			const drumProg = {
-				bankL, prog,
-				drumNo,
-				drumSet: {
-					name: json.drumSets[drumNo].name,
-					$ref: `#/drumSets/${drumNo}`,
-				},
-			};
-			drumMaps.push(drumProg);
-		}
-	}
-
-	return drumMaps;
 }

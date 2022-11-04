@@ -523,7 +523,15 @@ console.assert(drumWaveNames.length === 256);
 export function binToJsonForGMega(files, memMap) {
 	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
 
-	const json = {};
+	const json = {
+		waves: null,
+		drumWaves: null,
+		tonesGM: null,
+		tonesSP: null,
+		drumTonesGM: null,
+		drumTonesSP: null,
+		drumSets: null,
+	};
 
 	// Waves
 	json.waves = waveNames.map((name, waveNo) => ({waveNo, name}));
@@ -575,8 +583,8 @@ function makeTones(files, memMap, kind) {
 			const toneParamsBytes = toneParamsPackets[paramIndex + j];
 			const waveNo = toneParamsBytes[0];
 			return {
-				waveNo,
 				bytes: [...toneParamsBytes],
+				waveNo,
 				wave: {
 					name: waveNames[waveNo],
 					$ref: `#/waves/${waveNo}`,
@@ -620,8 +628,8 @@ function makeDrumTones(files, memMap, kind) {
 	drumToneParamsPackets.forEach((drumToneParamsBytes, drumToneNo) => {
 		const drumWaveNo = drumToneParamsBytes[0];
 		const voice = {
-			drumWaveNo,
 			bytes: [...drumToneParamsBytes],
+			drumWaveNo,
 			drumWave: {
 				name: drumWaveNames[drumWaveNo],
 				$ref: `#/drumWaves/${drumWaveNo}`,

@@ -3,7 +3,10 @@ import {splitArrayByN, removePrivateProp, verifyData, isValidRange} from './bin2
 export function binToJsonForTG300(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
-	const json = {};
+	const json = {
+		waves: null,
+		tones: null,
+	};
 
 	// Waves
 	console.assert(isValidRange(memMap.waveNames));
@@ -62,8 +65,8 @@ function makeTones(bytes, json) {
 		voicePackets.forEach((voiceBytes) => {
 			const waveNo = (voiceBytes[0] << 7) | voiceBytes[1];
 			const voice = {
-				waveNo,
 				bytes: [...voiceBytes],
+				waveNo,
 				wave: {
 					name: json.waves[waveNo].name,
 					$ref: `#/waves/${waveNo}`,
@@ -127,10 +130,10 @@ function makeToneMaps(tableToneMap, json, kind) {
 	function makeToneProg(kind, prog, bankM, bankL) {
 		const toneNo = tableToneMap(kind, prog, bankM, bankL);
 		return {
-			name: json.tones[toneNo].name,
 			bankM, bankL, prog,
 			toneNo,
 			tone: {
+				name: json.tones[toneNo].name,
 				$ref: `#/tones/${toneNo}`,
 			},
 		};

@@ -135,7 +135,11 @@ console.assert(drumToneNames.length === 128);
 export function binToJsonForGMegaLx(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
-	const json = {};
+	const json = {
+		tones: null,
+		drumTones: null,
+		drumSets: null,
+	};
 
 	// Tones
 	json.tones = makeTones(allBytes, memMap);
@@ -194,8 +198,8 @@ function makeDrumTones(bytes) {
 	drumToneParamsPackets.forEach((drumToneParamsBytes, drumToneNo) => {
 //		const drumWaveNo = drumToneParamsBytes[22];
 		const voice = {
-//			drumWaveNo,
 			bytes: [...drumToneParamsBytes],
+//			drumWaveNo,
 //			drumWave: {
 //				name: drumToneWaveNames[drumWaveNo],
 //				$ref: `#/drumWaves/${drumWaveNo}`,

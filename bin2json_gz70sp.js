@@ -308,14 +308,18 @@ console.assert(drumNames.length === 8);
 export function binToJsonForGZ70SP(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
-	const json = {};
-
-	// Tones
-	json.tones = makeTones(allBytes, memMap);
+	const json = {
+		samples: null,
+		tones: null,
+		drumMaps: null,
+	};
 
 	// Samples
 	console.assert(isValidRange(memMap.samples));
 	json.samples = makeSamples(allBytes.slice(...memMap.samples));
+
+	// Tones
+	json.tones = makeTones(allBytes, memMap);
 
 	// Adds sample names.
 	addSampleNames(json);
@@ -327,6 +331,34 @@ export function binToJsonForGZ70SP(allBytes, memMap) {
 	removePrivateProp(json);
 
 	return json;
+}
+
+function makeSamples(bytes) {
+	console.assert(bytes?.length);
+
+	const samples = [];
+	const samplePackets = splitArrayByN(bytes, 16);
+	samplePackets.forEach((sampleBytes, sampleNo) => {
+		const view = new DataView(sampleBytes.buffer);
+		verifyData(sampleBytes[6] === 0x00 && sampleBytes[7] === 0x00);
+
+		const sample = {
+			sampleNo,
+			level:     sampleBytes[14],
+			pitch:     view.getInt16(12, true),
+			exponent:  sampleBytes[15],
+			startAddr: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
+			endAddr:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
+			loopAddr:  ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
+			name:      null,
+		};
+		verifyData(sample.startAddr <  sample.endAddr  || sample.sampleNo === 125);	// Sample #125 is empty data.
+		verifyData(sample.startAddr <= sample.loopAddr || sample.sampleNo === 612);	// Sample #612 (for "BIRD") seems have wrong loop address. (probably a bug)
+		verifyData(sample.loopAddr  <= sample.endAddr);
+		samples.push(sample);
+	});
+
+	return samples;
 }
 
 function makeTones(allBytes, memMap) {
@@ -359,7 +391,13 @@ function makeTones(allBytes, memMap) {
 				panpot:         view.getInt8(11),
 				velSensDepth:   view.getUint8(25),
 				velSensOffset:  view.getUint8(27),
-				sampleSlots:    sampleNos.map((sampleNo) => ({sample: {sampleNo, name: null, $ref: `#/samples/${sampleNo}`}})),
+				sampleSlots:    sampleNos.map((sampleNo) => ({
+					sampleNo,
+					sample: {
+						name: null,
+						$ref: `#/samples/${sampleNo}`,
+					}
+				})),
 				_sampleNos:     sampleNos,
 			};
 			voices.push(voice);
@@ -378,32 +416,23 @@ function makeTones(allBytes, memMap) {
 	return tones;
 }
 
-function makeSamples(bytes) {
-	console.assert(bytes?.length);
+function makeDrumMaps(bytes, json) {
+	console.assert(bytes?.length && Array.isArray(json?.tones));
 
-	const samples = [];
-	const samplePackets = splitArrayByN(bytes, 16);
-	samplePackets.forEach((sampleBytes, sampleNo) => {
-		const view = new DataView(sampleBytes.buffer);
-		verifyData(sampleBytes[6] === 0x00 && sampleBytes[7] === 0x00);
-
-		const sample = {
-			sampleNo,
-			name:      null,
-			level:     sampleBytes[14],
-			pitch:     view.getInt16(12, true),
-			exponent:  sampleBytes[15],
-			startAddr: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
-			endAddr:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
-			loopAddr:  ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
+	const drumMaps = [];
+	const tableDrums = splitArrayByN(bytes, 2);
+	tableDrums.forEach(([prog, toneNo]) => {
+		const drumProg = {
+			prog, toneNo,
+			tone: {
+				name: json.tones[toneNo].name,
+				$ref: `#/tones/${toneNo}`,
+			},
 		};
-		verifyData(sample.startAddr <  sample.endAddr  || sample.sampleNo === 125);	// Sample #125 is empty data.
-		verifyData(sample.startAddr <= sample.loopAddr || sample.sampleNo === 612);	// Sample #612 (for "BIRD") seems have wrong loop address. (probably a bug)
-		verifyData(sample.loopAddr  <= sample.endAddr);
-		samples.push(sample);
+		drumMaps.push(drumProg);
 	});
 
-	return samples;
+	return drumMaps;
 }
 
 function addSampleNames(json) {
@@ -457,25 +486,6 @@ function addSampleNames(json) {
 
 	// Adds sample names to tones.
 	json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.sampleSlots.forEach((sampleSlot) => {
-		sampleSlot.sample.name = sampleNames[sampleSlot.sample.sampleNo];
+		sampleSlot.sample.name = sampleNames[sampleSlot.sampleNo];
 	})));
-}
-
-function makeDrumMaps(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.tones));
-
-	const drumMaps = [];
-	const tableDrums = splitArrayByN(bytes, 2);
-	tableDrums.forEach(([prog, toneNo]) => {
-		const drumProg = {
-			prog, toneNo,
-			tone: {
-				name: json.tones[toneNo].name,
-				$ref: `#/tones/${toneNo}`,
-			},
-		};
-		drumMaps.push(drumProg);
-	});
-
-	return drumMaps;
 }
