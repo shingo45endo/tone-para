@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import {splitArrayByN, makeAddress4byteBE, removePrivateProp, verifyData, isValidRange} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
@@ -92,12 +92,12 @@ function makeDrumSets(bytes, memMap) {
 
 	const drumSets = [];
 	for (let drumSetNo = 0; drumSetNo < drumSetsAddrs.length; drumSetNo++) {
-		const addr = makeAddress4byteBE(drumSetsAddrs[drumSetNo]);
+		const addr = makeValue4ByteBE(drumSetsAddrs[drumSetNo]);
 		const offsets = splitArrayByN(bytes.slice(addr, addr + 2 * 128), 2);
 
 		const notes = {};
 		for (let noteNo = 0; noteNo < 128; noteNo++) {
-			const offset = (offsets[noteNo][0] << 8) | offsets[noteNo][1];
+			const offset = makeValue2ByteBE(offsets[noteNo]);
 			if (offset === 0xffff) {
 				continue;
 			}
@@ -131,7 +131,7 @@ function makeDrumSets(bytes, memMap) {
 		console.assert(isValidRange(tableDrumParamsRange) && isValidRange(drumSetNamesRange) && isValidRange(drumNoteNamesRange) && isValidRange(tableDrumSetNamesRange));
 
 		const drumSetNamePackets = splitArrayByN(bytes.slice(...drumSetNamesRange), 12);
-		drumSetNameAddrs.push(...drumSetNamePackets.map((e) => makeAddress4byteBE(e.slice(8))), drumSetNamesRange[1]);
+		drumSetNameAddrs.push(...drumSetNamePackets.map((e) => makeValue4ByteBE(e.slice(8))), drumSetNamesRange[1]);
 		drumSetNameAddrs = [...new Set(drumSetNameAddrs)].sort((a, b) => a - b);
 
 		const tableDrumParams   = bytes.slice(...tableDrumParamsRange);
@@ -147,7 +147,7 @@ function makeDrumSets(bytes, memMap) {
 
 			const drumSetNamePacket = drumSetNamePackets[indexName];
 			const name = String.fromCharCode(...drumSetNamePacket.slice(0, 8));
-			const addr = makeAddress4byteBE(drumSetNamePacket.slice(8));
+			const addr = makeValue4ByteBE(drumSetNamePacket.slice(8));
 			const index = drumSetNameAddrs.indexOf(addr);
 			console.assert(index >= 0 && index < drumSetNameAddrs.length - 1);
 
@@ -234,7 +234,7 @@ function makeTableOfToneMap(bytes, memMap, json) {
 
 	console.assert(isValidRange(memMap.tableToneAddrs));
 	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), 512).map((packet) => splitArrayByN(packet, 4).map((e) => {
-		const offset = ((e[0] << 24) | (e[1] << 16) | (e[2] << 8) | e[3]) * 2;
+		const offset = makeValue4ByteBE(e) * 2;
 		const tone = json.tones.filter((tone) => offset === tone._offset);
 		verifyData(tone.length === 1);
 		return tone[0].toneNo;

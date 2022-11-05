@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, verifyData, isValidRange} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteBE} from './bin2json_common.js';
 
 export function binToJsonForTG300(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -147,7 +147,7 @@ function makeTableOfToneMap(allBytes, memMap, json) {
 		if (i === 0x10) {
 			return 0;
 		}
-		const offset = (e[0] << 8) | e[1];
+		const offset = makeValue2ByteBE(e);
 		const tone = json.tones.filter((tone) => offset === tone._offset);
 		verifyData(tone.length === 1);
 		return tone[0].toneNo;

@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {makeValue2ByteLE, splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
 const drumToneNames = [
 	'BOB BD',
@@ -164,7 +164,7 @@ function makeTones(allBytes, memMap) {
 	verifyData(toneNames.every((e) => /^[\x20-\x7f]*$/u.test(e)));
 
 	console.assert(isValidRange(memMap.tableToneAddrs));
-	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 2).map((e) => (e[1] << 8) | e[0]);
+	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 2).map((e) => makeValue2ByteLE(e));
 	console.assert(tableToneAddrs.length === 160);
 
 	const tones = [];

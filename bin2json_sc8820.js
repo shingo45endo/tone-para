@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {splitArrayByN, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
 
 export const [binToJsonForSC8820, binToJsonForSCD70] = [
 	makeTableOfDrumMapForSC8820,
@@ -66,9 +66,9 @@ function makeSamples(bytes) {
 			bytes: [...sampleBytes],
 			key:   sampleBytes[6],
 			bank:  sampleBytes[0],
-			addrBegin: sampleBytes.slice(1, 4).reduce((p, c) => (p << 8) | c, 0),
-			addrLoop:  sampleBytes.slice(7, 10).reduce((p, c) => (p << 8) | c, 0),
-			addrEnd:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
+			addrBegin: makeValue3ByteBE(sampleBytes.slice(1, 4)),
+			addrLoop:  makeValue3ByteBE(sampleBytes.slice(7, 10)),
+			addrEnd:   makeValue3ByteBE(sampleBytes.slice(11, 14)),
 		};
 		verifyData(sample.addrBegin <  sample.addrEnd);
 		verifyData(sample.addrBegin <= sample.addrLoop || sampleNo === 3575 || sampleNo === 3576);
@@ -86,7 +86,7 @@ function makeWaves(bytes) {
 	const wavePackets = splitArrayByN(bytes, 140);
 	wavePackets.forEach((waveBytes, waveNo) => {
 		const notes = waveBytes.slice(12, 44);
-		const sampleNos = splitArrayByN(waveBytes.slice(44, 108), 2).map((e) => (e[0] << 8) | e[1]);
+		const sampleNos = splitArrayByN(waveBytes.slice(44, 108), 2).map((e) => makeValue2ByteBE(e));
 		const levels = waveBytes.slice(108, 140);
 		console.assert(notes.length === 32 && sampleNos.length === 32 && levels.length === 32);
 
@@ -141,7 +141,7 @@ function makeTones(bytes, json) {
 		voicePackets.forEach((voiceBytes) => {
 			verifyData(voiceBytes[4] === 0x40);
 			verifyData([5, 7, 20, 37, 38, 39, 40].every((e) => voiceBytes[e] === 0x00));
-			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
+			const waveNo = makeValue2ByteBE(voiceBytes.slice(2, 4));
 			const voice = {
 				bytes: [...voiceBytes],
 				waveNo,
@@ -177,7 +177,7 @@ function makeTones4(bytes, json) {
 
 		const voices = [];
 		voicePackets.forEach((voiceBytes) => {
-			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
+			const waveNo = makeValue2ByteBE(voiceBytes.slice(2, 4));
 			const voice = {
 				bytes: [...voiceBytes],
 				waveNo,
@@ -244,7 +244,7 @@ function makeDrumSets(allBytes, memMap, tableDrumMap, json) {
 	console.assert(isValidRange(memMap.drumSets));
 	const drumSetPackets = splitArrayByN(allBytes.slice(...memMap.drumSets), 1292);
 	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
-		const tones = splitArrayByN(drumSetBytes.slice(0, 256), 2).map((e) => (e[0] << 8) | e[1]);
+		const tones = splitArrayByN(drumSetBytes.slice(0, 256), 2).map((e) => makeValue2ByteBE(e));
 		const [levels, pitches, groups, panpots, reverbs, choruses, delays, rxBits] = splitArrayByN(drumSetBytes.slice(256, 1280), 128);
 
 		const notes = {};
@@ -432,7 +432,7 @@ function makeTableOfToneMap(allBytes, memMap) {
 
 	// tableTones[bankNo][prog] => toneNo
 	console.assert(isValidRange(memMap.tableTones));
-	const tableTones = splitArrayByN(allBytes.slice(...memMap.tableTones), 256).map((e) => splitArrayByN(e, 2).map((e) => (e[0] << 8) | e[1]));
+	const tableTones = splitArrayByN(allBytes.slice(...memMap.tableTones), 256).map((e) => splitArrayByN(e, 2).map((e) => makeValue2ByteBE(e)));
 
 	return ((tableMaps, tableBanks, tableTones) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
@@ -461,7 +461,7 @@ function makeTableOfDrumMapForSC8820(allBytes, memMap) {
 
 	// tableDrums2[drumIndex] => drumNo
 	console.assert(isValidRange(memMap.tableDrums2));
-	const tableDrums2 = splitArrayByN(allBytes.slice(...memMap.tableDrums2), 2).map((e) => (e[0] << 8) | e[1]);
+	const tableDrums2 = splitArrayByN(allBytes.slice(...memMap.tableDrums2), 2).map((e) => makeValue2ByteBE(e));
 
 	return ((tableDrumMaps, tableDrums, tableDrums2) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
@@ -486,7 +486,7 @@ function makeTableOfDrumMapForSCD70(allBytes, memMap) {
 
 	// tableDrums[mapNo][prog] => drumNo
 	console.assert(isValidRange(memMap.tableDrums));
-	const tableDrums = splitArrayByN(allBytes.slice(...memMap.tableDrums), 256).map((e) => splitArrayByN(e, 2).map((e) => (e[0] << 8) | e[1]));
+	const tableDrums = splitArrayByN(allBytes.slice(...memMap.tableDrums), 256).map((e) => splitArrayByN(e, 2).map((e) => makeValue2ByteBE(e)));
 
 	return ((tableDrumMaps, tableDrums) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));

@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {splitArrayByN, isValidRange, verifyData, makeValue2ByteBE} from './bin2json_common.js';
 
 export function binToJsonForSC55(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -68,7 +68,7 @@ function makeWaves(allBytes, wavesRanges) {
 	const wavePackets = splitArrayByN(regionBytes, 60);
 	wavePackets.forEach((waveBytes, waveNo) => {
 		const notes = waveBytes.slice(12, 28);
-		const sampleNos = splitArrayByN(waveBytes.slice(28, 60), 2).map((e) => (e[0] << 8) | e[1]);
+		const sampleNos = splitArrayByN(waveBytes.slice(28, 60), 2).map((e) => makeValue2ByteBE(e));
 		console.assert(notes.length === 16 && sampleNos.length === 16);
 
 		const sampleSlots = [];
@@ -120,7 +120,7 @@ function makeTones(allBytes, tonesRanges, json) {
 		const voicePackets = splitArrayByN(toneBytes.slice(32, 32 + 92 * numVoices), 92);
 
 		const voices = voicePackets.map((voiceBytes) => {
-			const waveNo = (voiceBytes[2] << 8) | voiceBytes[3];
+			const waveNo = makeValue2ByteBE(voiceBytes.slice(2, 4));
 			const voice = {
 				bytes: [...voiceBytes],
 				waveNo,
@@ -151,7 +151,7 @@ function makeDrumSets(bytes, json) {
 	const drumSets = [];
 	const drumSetPackets = splitArrayByN(bytes, 1164);
 	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
-		const tones = splitArrayByN(drumSetBytes.slice(0, 256), 2).map((e) => (e[0] << 8) | e[1]);
+		const tones = splitArrayByN(drumSetBytes.slice(0, 256), 2).map((e) => makeValue2ByteBE(e));
 		const [levels, pitches, groups, panpots, reverbs, choruses, rxBits] = splitArrayByN(drumSetBytes.slice(256, 1152), 128);
 
 		const notes = {};
@@ -193,7 +193,7 @@ function makeDrumSets(bytes, json) {
 function makeToneMaps(bytes, json) {
 	console.assert(bytes?.length && Array.isArray(json?.tones));
 
-	const tableTones = splitArrayByN(bytes, 256).map((packet) => splitArrayByN(packet, 2).map((e) => (e[0] << 8) | e[1]));
+	const tableTones = splitArrayByN(bytes, 256).map((packet) => splitArrayByN(packet, 2).map((e) => makeValue2ByteBE(e)));
 
 	const toneMaps = [];
 	for (let prog = 0; prog < 128; prog++) {

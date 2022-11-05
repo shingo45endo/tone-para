@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, verifyData, isValidRange} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteLE, makeValue3ByteLE} from './bin2json_common.js';
 
 const toneNames = [
 	'PIANO 1',
@@ -347,9 +347,9 @@ function makeSamples(bytes) {
 			level:     sampleBytes[14],
 			exponent:  sampleBytes[15],
 			pitch:     view.getInt16(12, true),
-			addrBegin: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
-			addrLoop: ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
-			addrEnd:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
+			addrBegin: makeValue3ByteLE(sampleBytes.slice(0, 3))  & 0x3fffff,
+			addrLoop:  makeValue3ByteLE(sampleBytes.slice(8, 11)) & 0x3fffff,
+			addrEnd:   makeValue3ByteLE(sampleBytes.slice(3, 6))  & 0x3fffff,
 			name:      null,
 		};
 		verifyData(sample.addrBegin <  sample.addrEnd  || sample.sampleNo === 125);	// Sample #125 is empty data.
@@ -368,7 +368,7 @@ function makeTones(allBytes, memMap) {
 	const tonePackets = splitArrayByN(allBytes.slice(...memMap.tones), 28);
 
 	console.assert(isValidRange(memMap.tableSampleOffsets));
-	const tableSampleOffsets = splitArrayByN(allBytes.slice(...memMap.tableSampleOffsets), 256).map((tableBytes) => splitArrayByN(tableBytes, 2).map((e) => (e[1] << 8) | e[0]));
+	const tableSampleOffsets = splitArrayByN(allBytes.slice(...memMap.tableSampleOffsets), 256).map((tableBytes) => splitArrayByN(tableBytes, 2).map((e) => makeValue2ByteLE(e)));
 
 	const tones = [];
 	let index = 0;

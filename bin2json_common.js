@@ -8,11 +8,6 @@ export function splitArrayByN(bytes, n) {
 	}, []);
 }
 
-export function makeAddress4byteBE(bytes) {
-	console.assert(bytes && bytes.length === 4);
-	return bytes.reduce((p, c, i) => p | (c << ((3 - i) * 8)), 0);
-}
-
 export function convert7to8bits(bytes) {
 	console.assert(bytes && bytes.length > 0, 'Invalid argument', {bytes});
 
@@ -67,4 +62,34 @@ export function isValidRange(ranges) {
 
 export function verifyData(condition) {
 	console.assert(condition);
+}
+
+export const [
+	makeValue2ByteLE,
+	makeValue3ByteLE,
+	makeValue4ByteLE,
+	makeValue2ByteBE,
+	makeValue3ByteBE,
+	makeValue4ByteBE,
+] = [
+	{len: 2, func: makeValueFromArrayLE},
+	{len: 3, func: makeValueFromArrayLE},
+	{len: 4, func: makeValueFromArrayLE},
+	{len: 2, func: makeValueFromArrayBE},
+	{len: 3, func: makeValueFromArrayBE},
+	{len: 4, func: makeValueFromArrayBE},
+].map(({len, func}) => {
+	return (bytes) => {
+		console.assert(bytes?.length === len);
+		return func(bytes);
+	};
+});
+
+function makeValueFromArrayLE(bytes) {
+	console.assert(bytes?.length);
+	return bytes.reduce((p, c, i) => p | (c << (i * 8)), 0);
+}
+function makeValueFromArrayBE(bytes) {
+	console.assert(bytes?.length);
+	return bytes.reduce((p, c, i) => p | (c << ((bytes.length - i - 1) * 8)), 0);
 }

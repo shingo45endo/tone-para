@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, isValidRange, verifyData} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
 
 export function binToJsonForSC88Pro(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -93,9 +93,9 @@ function makeSamples(allBytes, sampleRanges) {
 				bytes: [...sampleBytes],
 				key:   sampleBytes[6],
 //				pitch: (new DataView((new Uint8Array(sampleBytes.slice(4, 6))).buffer)).getInt16(),
-				addrBegin: sampleBytes.slice(1, 4).reduce((p, c) => (p << 8) | c, 0),
-				addrLoop:  sampleBytes.slice(7, 10).reduce((p, c) => (p << 8) | c, 0),
-				addrEnd:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
+				addrBegin: makeValue3ByteBE(sampleBytes.slice(1, 4)),
+				addrLoop:  makeValue3ByteBE(sampleBytes.slice(7, 10)),
+				addrEnd:   makeValue3ByteBE(sampleBytes.slice(11, 14)),
 				_addr: rangeBegin + 20 * i,
 			};
 			verifyData(sample.addrBegin < sample.addrEnd);
@@ -116,12 +116,12 @@ function makeWaves(bytes, json) {
 	let waveNo = 0;
 	while (index < bytes.length) {
 		const offset = index;
-		verifyData(((bytes[index] << 8) | bytes[index + 1]) === waveNo);
+		verifyData(makeValue2ByteBE(bytes.slice(index, index + 2)) === waveNo);
 		index += 2;
 		const name = String.fromCharCode(...bytes.slice(index, index + 12));
 		verifyData(/^[\x20-\x7f]*$/u.test(name));
 		index += 12;
-		verifyData(((bytes[index] << 8) | bytes[index + 1]) === 0x03ff);
+		verifyData(makeValue2ByteBE(bytes.slice(index, index + 2)) === 0x03ff);
 		index += 2;
 
 		const sampleSlots = [];
@@ -129,7 +129,7 @@ function makeWaves(bytes, json) {
 			const sampleSlotBytes = bytes.slice(index, index + 6);
 			index += 6;
 
-			const sampleAddr = (sampleSlotBytes[4] << 8) | sampleSlotBytes[5];
+			const sampleAddr = makeValue2ByteBE(sampleSlotBytes.slice(4, 6));
 			let sampleNo;
 			if (sampleAddr !== 0xffff) {
 				if (sampleSlotBytes[1] !== 0xff) {	// SC-88Pro
@@ -195,7 +195,7 @@ function makeTones(allBytes, tonesRanges, json) {
 			const voices = voicePackets.map((voiceBytes) => {
 				verifyData([9, 28, 38, 39].every((index) => voiceBytes[index] === 0x00));
 				verifyData([6, 47, 57, 63, 89, 147].every((index) => voiceBytes[index] === 0xff));
-				const waveOffset = (voiceBytes[0] << 8) | voiceBytes[1];
+				const waveOffset = makeValue2ByteBE(voiceBytes.slice(0, 2));
 				const waveNo = json.waves.find((wave) => wave._offset === waveOffset).waveNo;
 				const voice = {
 					bytes: [...voiceBytes],
@@ -234,7 +234,7 @@ function makeDrumSets(allBytes, memMap, json) {
 	memMap.drumSetsRanges.forEach(([rangeBegin, rangeEnd]) => {
 		const drumSetPackets = splitArrayByN(allBytes.slice(rangeBegin, rangeEnd), 1292);
 		drumSetPackets.forEach((drumSetBytes, i) => {
-			const toneAddrs = splitArrayByN(drumSetBytes.slice(0, 384), 3).map((e) => (e[0] << 16) | (e[1] << 8) | e[2]);
+			const toneAddrs = splitArrayByN(drumSetBytes.slice(0, 384), 3).map((e) => makeValue3ByteBE(e));
 			const [pitches, levels, groups, panpots, reverbs, choruses, rxBits] = splitArrayByN(drumSetBytes.slice(384, 1280), 128);
 
 			const notes = {};
@@ -277,7 +277,7 @@ function makeDrumSets(allBytes, memMap, json) {
 
 	// Adds proper Drum Set No. from addresses of each Drum Sets.
 	console.assert(isValidRange(memMap.tableDrumSetAddrs));
-	const tableDrumSetAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumSetAddrs), 3).map((e) => ((e[0] & 0x0f) << 16) | (e[1] << 8) | e[2]);
+	const tableDrumSetAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumSetAddrs), 3).map((e) => makeValue3ByteBE(e) & 0x0fffff);
 	const drumSets = tableDrumSetAddrs.map((drumSetAddr, drumSetNo) => {
 		const drumSet = drumSetInstances.find((drumSet) => drumSetAddr === drumSet._addr);
 		verifyData(drumSet);
@@ -434,7 +434,7 @@ function makeTableOfToneMapForSC88Pro(allBytes, memMap) {
 
 	// tableToneAddrs[bankNo][prog] => toneAddr
 	console.assert(isValidRange(memMap.tableToneAddrs));
-	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 3 * 128).map((e) => splitArrayByN(e, 3).map(([b0, b1, b2]) => (b0 << 16) | (b1 << 8) | b2));
+	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 3 * 128).map((e) => splitArrayByN(e, 3).map((e) => makeValue3ByteBE(e)));
 
 	return ((tableMaps, tableBanks, tableToneAddrs) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));
@@ -463,7 +463,7 @@ function makeTableOfToneMapForSC88(allBytes, memMap) {
 
 	// tableToneAddrs[bankNo][prog] => toneAddr
 	console.assert(isValidRange(memMap.tableToneAddrs));
-	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 3 * 128).map((e) => splitArrayByN(e, 3).map(([b0, b1, b2]) => (b0 << 16) | (b1 << 8) | b2));
+	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 3 * 128).map((e) => splitArrayByN(e, 3).map((e) => makeValue3ByteBE(e)));
 
 	return ((tableBanks, tableToneAddrs) => (prog, bankM, bankL) => {
 		console.assert([prog, bankM, bankL].every((e) => (0 <= e && e < 128)));

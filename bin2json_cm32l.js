@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {splitArrayByN, isValidRange, verifyData, makeValue2ByteLE} from './bin2json_common.js';
 
 const sampleNames = [
 	'Acoustic Bass Drum',
@@ -293,7 +293,7 @@ function makeSamples(bytes) {
 		const sample = {
 			sampleNo,
 			name:      sampleNames[sampleNo],
-			pitch:     (sampleBytes[3] << 8) | sampleBytes[2],
+			pitch:     makeValue2ByteLE(sampleBytes.slice(2, 4)),
 			length:    0x800 << ((sampleBytes[1] & 0x70) >> 4),
 			addrBegin: sampleBytes[0] * 0x0800,
 			isLooped:  (sampleBytes[1] & 0x80) !== 0,

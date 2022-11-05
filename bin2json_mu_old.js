@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import {splitArrayByN, removePrivateProp, verifyData, isValidRange} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
@@ -366,7 +366,7 @@ function makeTableOfToneMap(bytes, memMap, json, addrSize) {
 
 	console.assert(isValidRange(memMap.tableToneAddrs));
 	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
-		const offset = e.reduce((p, c) => (p << 8) | c, 0) * ((addrSize === 2) ? 2 : 1);
+		const offset = (addrSize === 2) ? makeValue2ByteBE(e) * 2 : makeValue4ByteBE(e);
 		const tone = json.tones.filter((tone) => offset === tone._offset);
 		verifyData(tone.length === 1);
 		return tone[0].toneNo;
