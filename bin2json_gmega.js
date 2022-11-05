@@ -585,9 +585,9 @@ function makeTones(files, memMap, kind) {
 			return {
 				bytes: [...toneParamsBytes],
 				waveNo,
-				wave: {
-					name: waveNames[waveNo],
+				waveRef: {
 					$ref: `#/waves/${waveNo}`,
+					name: waveNames[waveNo],
 				},
 			};
 		});
@@ -630,9 +630,9 @@ function makeDrumTones(files, memMap, kind) {
 		const voice = {
 			bytes: [...drumToneParamsBytes],
 			drumWaveNo,
-			drumWave: {
-				name: drumWaveNames[drumWaveNo],
+			drumWaveRef: {
 				$ref: `#/drumWaves/${drumWaveNo}`,
+				name: drumWaveNames[drumWaveNo],
 			},
 		};
 		const drumTone = {
@@ -656,9 +656,9 @@ function makeDrumSets(bytes, json) {
 		drumSetBytes.forEach((drumToneNo, noteNo) => {
 			const note = {
 				drumToneNo,
-				drumTone: {
-					name: json.drumTonesGM[drumToneNo].name,
+				drumToneRef: {
 					$ref: `#/drumTonesGM/${drumToneNo}`,
+					name: json.drumTonesGM[drumToneNo].name,
 				},
 			};
 			notes[noteNo] = note;

@@ -393,9 +393,9 @@ function makeTones(allBytes, memMap) {
 				velSensOffset:  view.getUint8(27),
 				sampleSlots:    sampleNos.map((sampleNo) => ({
 					sampleNo,
-					sample: {
-						name: null,
+					sampleRef: {
 						$ref: `#/samples/${sampleNo}`,
+						name: null,
 					},
 				})),
 				_sampleNos:     sampleNos,
@@ -424,9 +424,9 @@ function makeDrumMaps(bytes, json) {
 	tableDrums.forEach(([prog, toneNo]) => {
 		const drumProg = {
 			prog, toneNo,
-			tone: {
-				name: json.tones[toneNo].name,
+			toneRef: {
 				$ref: `#/tones/${toneNo}`,
+				name: json.tones[toneNo].name,
 			},
 		};
 		drumMaps.push(drumProg);
@@ -486,6 +486,6 @@ function addSampleNames(json) {
 
 	// Adds sample names to tones.
 	json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.sampleSlots.forEach((sampleSlot) => {
-		sampleSlot.sample.name = sampleNames[sampleSlot.sampleNo];
+		sampleSlot.sampleRef.name = sampleNames[sampleSlot.sampleNo];
 	})));
 }

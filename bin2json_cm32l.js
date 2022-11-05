@@ -349,9 +349,9 @@ function makeTones(allBytes, tonesRanges, json) {
 				const sampleNo = (voiceBytes[4] >> 1) * 128 + voiceBytes[5];
 				Object.assign(voice, {
 					sampleNo,
-					sample: {
-						name: json.samples[sampleNo].name,
+					sampleRef: {
 						$ref: `#/samples/${sampleNo}`,
+						name: json.samples[sampleNo].name,
 					},
 				});
 			}
@@ -388,9 +388,9 @@ function makeDrumSet(bytes, json) {
 			panpot: drumNoteBytes[2],
 			isReverbOn: (drumNoteBytes[3] !== 0x00),
 			toneNo,
-			tone: {
-				name: json.tones[toneNo].name,
+			toneRef: {
 				$ref: `#/tones/${toneNo}`,
+				name: json.tones[toneNo].name,
 			},
 		};
 		notes[noteNo] = note;

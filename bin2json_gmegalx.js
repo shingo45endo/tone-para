@@ -200,9 +200,9 @@ function makeDrumTones(bytes) {
 		const voice = {
 			bytes: [...drumToneParamsBytes],
 //			drumWaveNo,
-//			drumWave: {
-//				name: drumToneWaveNames[drumWaveNo],
+//			drumWaveRef: {
 //				$ref: `#/drumWaves/${drumWaveNo}`,
+//				name: drumToneWaveNames[drumWaveNo],
 //			},
 		};
 		const drumTone = {
@@ -226,9 +226,9 @@ function makeDrumSets(bytes, json) {
 		drumSetBytes.forEach((drumToneNo, noteNo) => {
 			const note = {
 				drumToneNo,
-				drumTone: {
-					name: json.drumTones[drumToneNo].name,
+				drumToneRef: {
 					$ref: `#/drumTones/${drumToneNo}`,
+					name: json.drumTones[drumToneNo].name,
 				},
 			};
 			notes[noteNo] = note;

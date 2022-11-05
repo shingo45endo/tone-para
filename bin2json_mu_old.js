@@ -268,9 +268,9 @@ function makeTones(bytes, props, json) {
 			const voice = {
 				bytes: [...voiceBytes],
 				waveNo,
-				wave: {
-					name: (json.waves[waveNo]) ? json.waves[waveNo].name : `(Wave #${waveNo})`,
+				waveRef: {
 					$ref: `#/waves/${waveNo}`,
+					name: json.waves[waveNo]?.name ?? `(Wave #${waveNo})`,
 				},
 			};
 			voices.push(voice);
@@ -353,9 +353,9 @@ function makeToneMaps(tableToneMap, json, kind) {
 		return {
 			bankM, bankL, prog,
 			toneNo,
-			tone: {
-				name: json.tones[toneNo].name,
+			toneRef: {
 				$ref: `#/tones/${toneNo}`,
+				name: json.tones[toneNo].name,
 			},
 		};
 	}

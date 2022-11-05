@@ -148,7 +148,11 @@ function makeWaves(bytes, json) {
 				sampleNo,
 			};
 			if (sampleSlot.sampleNo >= 0) {
-				Object.assign(sampleSlot, {sample: {$ref: `#/samples/${sampleNo}`}});
+				Object.assign(sampleSlot, {
+					sampleRef: {
+						$ref: `#/samples/${sampleNo}`,
+					},
+				});
 			}
 			console.assert(sampleSlot.low <= sampleSlot.high);
 			sampleSlots.push(sampleSlot);
@@ -196,9 +200,9 @@ function makeTones(allBytes, tonesRanges, json) {
 				const voice = {
 					bytes: [...voiceBytes],
 					waveNo,
-					wave: {
-						name: json.waves[waveNo].name,
+					waveRef: {
 						$ref: `#/waves/${waveNo}`,
+						name: json.waves[waveNo].name,
 					},
 				};
 				return voice;
@@ -252,9 +256,9 @@ function makeDrumSets(allBytes, memMap, json) {
 					isRxNoteOn:  ((rxBits[noteNo] & 0x10) !== 0),
 					isRxNoteOff: ((rxBits[noteNo] & 0x01) !== 0),
 					toneNo,
-					tone: {
-						name: json.tones[toneNo].name,
+					toneRef: {
 						$ref: `#/tones/${toneNo}`,
+						name: json.tones[toneNo].name,
 					},
 				};
 				notes[noteNo] = note;
@@ -303,9 +307,9 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 			const toneNo = json.tones.find((tone) => tone._addr === (toneAddr & 0x0fffff)).toneNo;
 			Object.assign(toneSlot, {
 				toneNo,
-				tone: {
-					name: json.tones[toneNo].name,
+				toneRef: {
 					$ref: `#/tones/${toneNo}`,
+					name: json.tones[toneNo].name,
 				},
 			});
 		});
@@ -369,9 +373,9 @@ function makeToneMaps(tableToneMap, json) {
 			return {
 				bankL, prog, bankM,
 				toneNo,
-				tone: {
-					name: tone.name,
+				toneRef: {
 					$ref: `#/tones/${toneNo}`,
+					name: tone.name,
 				},
 			};
 		} else if (combi) {
@@ -379,9 +383,9 @@ function makeToneMaps(tableToneMap, json) {
 			return {
 				bankL, prog, bankM,
 				combiNo,
-				combi: {
-					name: combi.name,
+				combiRef: {
 					$ref: `#/combis/${combiNo}`,
+					name: combi.name,
 				},
 			};
 		} else {
@@ -405,9 +409,9 @@ function makeDrumMaps(tableDrumMap, json) {
 			const drumProg = {
 				bankL, prog,
 				drumSetNo,
-				drumSet: {
-					name: json.drumSets[drumSetNo].name,
+				drumSetRef: {
 					$ref: `#/drumSets/${drumSetNo}`,
+					name: json.drumSets[drumSetNo].name,
 				},
 			};
 			drumMaps.push(drumProg);

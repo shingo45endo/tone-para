@@ -105,9 +105,9 @@ function makeTones(bytes, json) {
 					const voice = {
 						bytes: [...voiceBytes],
 						waveNo: no,
-						wave: {
-							name: json.waves[no].name,
+						waveRef: {
 							$ref: `#/waves/${no}`,
+							name: json.waves[no].name,
 						},
 					};
 					voices.push(voice);
@@ -119,9 +119,9 @@ function makeTones(bytes, json) {
 					const voice = {
 						bytes: [...voiceBytes],
 						drumSetNo: no,
-						drumSet: {
-							name: json.drumSets[no].name,
+						drumSetRef: {
 							$ref: `#/drumSets/${no}`,
+							name: json.drumSets[no].name,
 						},
 					};
 					voices.push(voice);
@@ -199,9 +199,9 @@ function makeCombis(bytes, json) {
 				const tone = {
 					bytes: [...toneSlotBytes],
 					toneNo: toneRef.toneNo,
-					tone: {
-						name: toneRef.name,
+					toneRef: {
 						$ref: `#/tones/${toneRef.toneNo}`,
+						name: toneRef.name,
 					},
 				};
 				toneSlots.push(tone);
@@ -209,9 +209,9 @@ function makeCombis(bytes, json) {
 				const drumTone = {
 					bytes: [...toneSlotBytes],
 					drumToneNo: drumToneRef.drumToneNo,
-					drumTone: {
-						name: drumToneRef.name,
+					drumToneRef: {
 						$ref: `#/drumTones/${drumToneRef.drumToneNo}`,
+						name: drumToneRef.name,
 					},
 				};
 				toneSlots.push(drumTone);
@@ -278,9 +278,9 @@ function makeDrumSets(pcmBytes, memMap, json) {
 				const note = {
 					bytes: [...drumParamPackets[i]],
 					drumSampleNo,
-					drumSample: {
-						name: json.drumSamples[drumSampleNo].name,
+					drumSampleRef: {
 						$ref: `#/drumSamples/${drumSampleNo}`,
+						name: json.drumSamples[drumSampleNo].name,
 					},
 				};
 				const noteNo = 12 + i;

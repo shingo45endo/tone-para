@@ -295,9 +295,9 @@ export function midToJsonForAG10(files) {
 					octave: commonBytes[2 + i * 2],
 					bytes: [...toneBytes.slice(26 + i * 44, 70 + i * 44)],
 					waveNo,
-					wave: {
-						name: waveNames[waveNo],
+					waveRef: {
 						$ref: `#/waves/${waveNo}`,
+						name: waveNames[waveNo],
 					},
 				};
 				voices.push(voice);

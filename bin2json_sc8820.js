@@ -100,7 +100,11 @@ function makeWaves(bytes) {
 				sampleNo: ((sampleNo & 0x8000) === 0) ? sampleNo : sampleNo - 0x10000,
 			};
 			if (sample.sampleNo >= 0) {
-				Object.assign(sample, {sample: {$ref: `#/samples/${sampleNo}`}});
+				Object.assign(sample, {
+					sampleRef: {
+						$ref: `#/samples/${sampleNo}`,
+					},
+				});
 			}
 			console.assert(sample.low <= sample.high);
 			sampleSlots.push(sample);
@@ -141,9 +145,9 @@ function makeTones(bytes, json) {
 			const voice = {
 				bytes: [...voiceBytes],
 				waveNo,
-				wave: {
-					name: json.waves[waveNo].name,
+				waveRef: {
 					$ref: `#/waves/${waveNo}`,
+					name: json.waves[waveNo].name,
 				},
 			};
 			voices.push(voice);
@@ -177,9 +181,9 @@ function makeTones4(bytes, json) {
 			const voice = {
 				bytes: [...voiceBytes],
 				waveNo,
-				wave: {
-					name: json.waves[waveNo].name,
+				waveRef: {
 					$ref: `#/waves/${waveNo}`,
+					name: json.waves[waveNo].name,
 				},
 			};
 			voices.push(voice);
@@ -214,9 +218,9 @@ function makeCombis(bytes, tableToneMap, json) {
 			const toneNo = tableToneMap(prog, bankM, bankL) & 0x1fff;
 			Object.assign(toneSlot, {
 				toneNo,
-				tone: {
-					name: json.tones[toneNo].name,
+				toneRef: {
 					$ref: `#/tones/${toneNo}`,
+					name: json.tones[toneNo].name,
 				},
 			});
 		});
@@ -261,9 +265,9 @@ function makeDrumSets(allBytes, memMap, tableDrumMap, json) {
 				isRxNoteOff: ((rxBits[noteNo] & 0x01) !== 0),
 				name: null,
 				toneNo,
-				tone: {
-					name: json.tones[toneNo].name,
+				toneRef: {
 					$ref: `#/tones/${toneNo}`,
+					name: json.tones[toneNo].name,
 				},
 			};
 			notes[noteNo] = note;
@@ -353,9 +357,9 @@ function makeToneMaps(tableToneMap, json) {
 				bankL, prog, bankM,
 				isLegato,
 				combiNo: no,
-				combi: {
-					name: json.combis[no].name,
+				combiRef: {
 					$ref: `#/combis/${no}`,
+					name: json.combis[no].name,
 				},
 			};
 		} else if (is4Voice) {
@@ -363,18 +367,18 @@ function makeToneMaps(tableToneMap, json) {
 				bankL, prog, bankM,
 				is4Voice,
 				toneNo: no,
-				tone4: {
-					name: json.tones4[no].name,
+				toneRef: {
 					$ref: `#/tones4/${no}`,
+					name: json.tones4[no].name,
 				},
 			};
 		} else {
 			return {
 				bankL, prog, bankM,
 				toneNo: no,
-				tone: {
-					name: json.tones[no].name,
+				toneRef: {
 					$ref: `#/tones/${no}`,
+					name: json.tones[no].name,
 				},
 			};
 		}
@@ -395,9 +399,9 @@ function makeDrumMaps(tableDrumMap, json) {
 			const drumProg = {
 				bankL, prog,
 				drumSetNo,
-				drumSet: {
-					name: json.drumSets[drumSetNo].name,
+				drumSetRef: {
 					$ref: `#/drumSets/${drumSetNo}`,
+					name: json.drumSets[drumSetNo].name,
 				},
 			};
 			drumMaps.push(drumProg);
