@@ -9,6 +9,7 @@ import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc8820.js';
 import {binToJsonForSC88Pro, binToJsonForSC88} from './bin2json_sc88pro.js';
+import {binToJsonForSC55} from './bin2json_sc55.js';
 import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
@@ -25,7 +26,20 @@ const argv = yargs.
 	strict().
 	help().
 	option('mode', {
-		choices: ['sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010', 'sc-88pro', 'sc-88vl', 'sc-88', 'cm-32l', 'mu2000', 'mu1000', 'mu128', 'mu100', 'mu90', 'mu80', 'mu50', 'tg300', 'ns5r', 'ag-10', 'gmega', 'gmega-lx', 'gz-70sp'],
+		choices: [
+			'sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010',
+			'sc-88pro', 'sc-88vl', 'sc-88',
+			'xp-10', 'sc-55mk2', 'sc-33', 'sc-55_v20', 'sc-55_v12', 'sc-55_v10',
+			'cm-32l',
+			'mu2000', 'mu1000', 'mu128',
+			'mu100', 'mu90', 'mu80', 'mu50',
+			'tg300',
+			'ns5r',
+			'ag-10',
+			'gmega',
+			'gmega-lx',
+			'gz-70sp',
+		],
 	}).
 	option('bin', {
 		type: 'boolean',
@@ -168,6 +182,139 @@ try {
 						[0x060000, 0x06ffa8],	// "Brass 2" - "Brush Swirl"
 						[0x070000, 0x074f80],	// "Lite Tom 4" - "FlyingMonstr"
 					],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'xp-10':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "RAVE Vox"
+						[0x020000, 0x02bd00],	// "5th Saw Wave" - "Gt.FretNoise"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "PIANO1" - "SITAR"
+						[0x02bd00, 0x02db3c],	// "SynVox2" - "CR78 HiHat"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x030000],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03c940],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-55mk2':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "Machine Gun"
+						[0x020000, 0x02ab48],	// "Lasergun" - "Fl.Key Click"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "PIANO1" - "STSHP"
+						[0x02bd00, 0x02d560],	// "JETPL" - "Con_sym"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x02fa00],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03adf8],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-33':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "Machine Gun"
+						[0x020000, 0x023be8],	// "Lasergun" - "Gt.FretNoise"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "PIANO1" - "JET PLANE"
+						[0x02bd00, 0x02cad4],	// "TRIZ" - "Concert Cym"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x02e750],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03bb9c],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-55_v20':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "Chorale"
+						[0x020000, 0x0288b0],	// "Glasses" - "Open Hi Hat2"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "PIANO1" - "SQR20"
+						[0x02bd00, 0x02d470],	// "ELP2" - "Con_sym"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x02fba0],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03c028],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-55_v12':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "Chorale"
+						[0x020000, 0x0288b0],	// "Glasses" - "Open Hi Hat2"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "PIANO1" - "SQR20"
+						[0x02bd00, 0x02d470],	// "ELP2" - "Con_sym"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x02fb90],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03c028],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'sc-55_v10':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01a200],	// "Piano 1" - "Elec Piano 2"
+						[0x020000, 0x02a200],	// "Elec Piano 3" - "Open Hi Hat2"
+					],
+					wavesRanges: [
+						[0x01a200, 0x01cf00],	// "PIANO1" - "HI_Q"
+						[0x02a200, 0x02adf4],	// "SLAP" - "Con_sym"
+					],
+					samplesRanges: [
+						[0x01cf00, 0x01ff00],
+						[0x02cf00, 0x02dcf0],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03c028],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -528,6 +675,12 @@ try {
 			break;
 
 		case 'sc-88pro':
+		case 'xp-10':
+		case 'sc-55mk2':
+		case 'sc-33':
+		case 'sc-55_v20':
+		case 'sc-55_v12':
+		case 'sc-55_v10':
 		case 'cm-32l':
 		case 'tg300':
 		case 'ns5r':
