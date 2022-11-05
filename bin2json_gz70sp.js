@@ -345,16 +345,16 @@ function makeSamples(bytes) {
 		const sample = {
 			sampleNo,
 			level:     sampleBytes[14],
-			pitch:     view.getInt16(12, true),
 			exponent:  sampleBytes[15],
-			startAddr: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
-			endAddr:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
-			loopAddr:  ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
+			pitch:     view.getInt16(12, true),
+			addrBegin: ((sampleBytes[2] << 16) | (sampleBytes[1] << 8) | sampleBytes[0]) & 0x3fffff,
+			addrLoop: ((sampleBytes[10] << 16) | (sampleBytes[9] << 8) | sampleBytes[8]) & 0x3fffff,
+			addrEnd:   ((sampleBytes[5] << 16) | (sampleBytes[4] << 8) | sampleBytes[3]) & 0x3fffff,
 			name:      null,
 		};
-		verifyData(sample.startAddr <  sample.endAddr  || sample.sampleNo === 125);	// Sample #125 is empty data.
-		verifyData(sample.startAddr <= sample.loopAddr || sample.sampleNo === 612);	// Sample #612 (for "BIRD") seems have wrong loop address. (probably a bug)
-		verifyData(sample.loopAddr  <= sample.endAddr);
+		verifyData(sample.addrBegin <  sample.addrEnd  || sample.sampleNo === 125);	// Sample #125 is empty data.
+		verifyData(sample.addrBegin <= sample.addrLoop || sample.sampleNo === 612);	// Sample #612 (for "BIRD") seems have wrong loop address. (probably a bug)
+		verifyData(sample.addrLoop  <= sample.addrEnd);
 		samples.push(sample);
 	});
 
@@ -396,7 +396,7 @@ function makeTones(allBytes, memMap) {
 					sample: {
 						name: null,
 						$ref: `#/samples/${sampleNo}`,
-					}
+					},
 				})),
 				_sampleNos:     sampleNos,
 			};

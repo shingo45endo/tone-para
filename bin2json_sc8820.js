@@ -65,14 +65,14 @@ function makeSamples(bytes) {
 			sampleNo,
 			bytes: [...sampleBytes],
 			key:   sampleBytes[6],
-//			bank:  sampleBytes[10],
-//			begin: sampleBytes.slice( 7, 10).reduce((p, c) => (p << 8) | c, 0),
-//			end:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
-//			loop:  sampleBytes.slice(16, 18).reduce((p, c) => (p << 8) | c, 0),
-//			rate:  sampleBytes.slice( 4,  6).reduce((p, c) => (p << 8) | c, 0),
-//			rate2: sampleBytes.slice(14, 16).reduce((p, c) => (p << 8) | c, 0),
+			bank:  sampleBytes[0],
+			addrBegin: sampleBytes.slice(1, 4).reduce((p, c) => (p << 8) | c, 0),
+			addrLoop:  sampleBytes.slice(7, 10).reduce((p, c) => (p << 8) | c, 0),
+			addrEnd:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
 		};
-//		verifyData(sample.end >= sample.begin);
+		verifyData(sample.addrBegin <  sample.addrEnd);
+		verifyData(sample.addrBegin <= sample.addrLoop || sampleNo === 3575 || sampleNo === 3576);
+		verifyData(sample.addrLoop  <= sample.addrEnd);
 		samples.push(sample);
 	});
 

@@ -49,14 +49,14 @@ function makeDrumSamples(bytes) {
 		const drumSample = {
 			drumSampleNo,
 			name: String.fromCharCode(...drumSampleBytes.slice(0, 10)),
-//			begin: drumSampleBytes.slice(13, 16).reduce((p, c) => (p << 8) | c, 0),
-//			loop:  drumSampleBytes.slice(16, 19).reduce((p, c) => (p << 8) | c, 0),
-//			end:   drumSampleBytes.slice(19, 22).reduce((p, c) => (p << 8) | c, 0),
+			addrBegin: drumSampleBytes.slice(13, 16).reduce((p, c) => (p << 8) | c, 0),
+			addrLoop:  drumSampleBytes.slice(16, 19).reduce((p, c) => (p << 8) | c, 0),
+			addrEnd:   drumSampleBytes.slice(19, 22).reduce((p, c) => (p << 8) | c, 0),
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(drumSample.name));
-//		verifyData(drumSample.begin < drumSample.end);
-//		verifyData(drumSample.begin < drumSample.loop);
-//		verifyData(drumSample.loop  <= drumSample.end);
+		verifyData(drumSample.addrBegin < drumSample.addrEnd);
+		verifyData(drumSample.addrBegin < drumSample.addrLoop);
+		verifyData(drumSample.addrLoop <= drumSample.addrEnd);
 		drumSamples.push(drumSample);
 	});
 

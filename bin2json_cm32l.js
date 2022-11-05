@@ -293,9 +293,9 @@ function makeSamples(bytes) {
 		const sample = {
 			sampleNo,
 			name:      sampleNames[sampleNo],
-			address:   sampleBytes[0] * 0x0800,
-			length:    0x800 << ((sampleBytes[1] & 0x70) >> 4),
 			pitch:     (sampleBytes[3] << 8) | sampleBytes[2],
+			length:    0x800 << ((sampleBytes[1] & 0x70) >> 4),
+			addrBegin: sampleBytes[0] * 0x0800,
 			isLooped:  (sampleBytes[1] & 0x80) !== 0,
 			isTunable: (sampleBytes[1] & 0x01) === 0,
 		};

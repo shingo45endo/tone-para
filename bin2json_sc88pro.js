@@ -92,15 +92,14 @@ function makeSamples(allBytes, sampleRanges) {
 				sampleNo,
 				bytes: [...sampleBytes],
 				key:   sampleBytes[6],
-//				bank:  sampleBytes[10],
-//				begin: sampleBytes.slice( 7, 10).reduce((p, c) => (p << 8) | c, 0),
-//				end:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
-//				loop:  sampleBytes.slice(16, 18).reduce((p, c) => (p << 8) | c, 0),
-//				rate:  sampleBytes.slice( 4,  6).reduce((p, c) => (p << 8) | c, 0),
-//				rate2: sampleBytes.slice(14, 16).reduce((p, c) => (p << 8) | c, 0),
+//				pitch: (new DataView((new Uint8Array(sampleBytes.slice(4, 6))).buffer)).getInt16(),
+				addrBegin: sampleBytes.slice(1, 4).reduce((p, c) => (p << 8) | c, 0),
+				addrLoop:  sampleBytes.slice(7, 10).reduce((p, c) => (p << 8) | c, 0),
+				addrEnd:   sampleBytes.slice(11, 14).reduce((p, c) => (p << 8) | c, 0),
 				_addr: rangeBegin + 20 * i,
 			};
-//			verifyData(sample.end >= sample.begin);
+			verifyData(sample.addrBegin < sample.addrEnd);
+			verifyData(sample.addrLoop <= sample.addrEnd);
 			samples.push(sample);
 			sampleNo++;
 		});
@@ -145,9 +144,7 @@ function makeWaves(bytes, json) {
 			const sampleSlot = {
 				low: (sampleSlots.length > 0) ? sampleSlots[sampleSlots.length - 1].high + 1 : 0,
 				high: sampleSlotBytes[0],
-				b01: sampleSlotBytes[1],
-				b02: sampleSlotBytes[2],
-				b03: sampleSlotBytes[3],
+				bytes: [...sampleSlotBytes],
 				sampleNo,
 			};
 			if (sampleSlot.sampleNo >= 0) {
