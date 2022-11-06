@@ -14,6 +14,7 @@ import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
 import {binToJsonForTG300} from './bin2json_tg300.js';
+import {binToJsonForTG100} from './bin2json_tg100.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
 import {midToJsonForAG10} from './mid2json_ag10.js';
 import {binToJsonForGMega} from './bin2json_gmega.js';
@@ -34,6 +35,7 @@ const argv = yargs.
 			'mu2000', 'mu1000', 'mu128',
 			'mu100', 'mu90', 'mu80', 'mu50',
 			'tg300',
+			'tg100',
 			'ns5r',
 			'ag-10',
 			'gmega',
@@ -507,6 +509,36 @@ try {
 					tableTonesGM_A: [0x0084aa, 0x00852a],
 //					tableTones???:  [0x00852a, 0x0085aa],
 					tones:          [0x010000, 0x01f0c0],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'tg100':
+			{
+				const buf2 = fs.readFileSync(filePaths[1]);
+				const files = {
+					PROG: (buf.length < buf2.length) ? buf : buf2,
+					PCM:  (buf.length < buf2.length) ? buf2 : buf,
+				};
+				const json = binToJsonForTG100(files, {
+					// PROG
+					tableTonesGM:       [0x010000, 0x010100],
+					tableTonesDOC:      [0x010100, 0x010200],
+					tableTonesCMType1:  [0x010200, 0x010300],
+					tableTonesCMType2:  [0x010300, 0x010400],
+					tones:              [0x010410, 0x014c10],
+					tableDrums:         [0x014c10, 0x014c90],
+					tableBanks:         [0x014c90, 0x014d10],
+//					tableTonesInternal: [0x014d10, 0x014e10],	// Not used
+					tableDrumSetNames:  [0x0164e8, 0x016578],
+					drumSetNames:       [0x016a80, 0x016ae0],
+					waves:              [0x0176a2, 0x018419],
+					tableWaves:         [0x01841a, 0x018532],
+					tableDrumNotes:     [0x018b9e, 0x01959e],
+
+					// PCM
+					samples: [0x000000, 0x001800],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
