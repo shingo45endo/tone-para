@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
+import {splitArrayByN, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
 
 const drumNotes = {
 	0: {
@@ -294,6 +294,11 @@ export function binToJsonForTG100(files, memMap) {
 	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
 
 	const json = {
+		samples: null,
+		waves: null,
+		drumWaves: null,
+		tones: null,
+		drumSets: null,
 	};
 
 	// Samples
@@ -302,6 +307,10 @@ export function binToJsonForTG100(files, memMap) {
 
 	// Waves
 	json.waves = makeWaves(files.PROG, memMap);
+
+	// Drum Waves
+	console.assert(isValidRange(memMap.tableDrumWaves));
+	json.drumWaves = makeDrumWaves(files.PROG.slice(...memMap.tableDrumWaves));
 
 	// Tones
 	console.assert(isValidRange(memMap.tones));
@@ -318,6 +327,13 @@ export function binToJsonForTG100(files, memMap) {
 	// Drum Map
 	console.assert(isValidRange(memMap.tableDrums));
 	json.drumMaps = makeDrumMaps(files.PROG.slice(...memMap.tableDrums), json);
+
+	// Adds names.
+	addWaveNames(json);
+	addDrumWaveNames(json);
+	addSampleNames(json);
+
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -382,6 +398,27 @@ function makeWaves(progBytes, memMap) {
 	return waves;
 }
 
+function makeDrumWaves(bytes) {
+	console.assert(bytes?.length);
+
+	const drumWaves = [];
+	const drumWavePackets = splitArrayByN(bytes, 6);
+	drumWavePackets.forEach((drumWaveBytes, drumWaveNo) => {
+		const sampleNo = makeValue2ByteBE(drumWaveBytes.slice(0, 2));
+		const drumWave = {
+			drumWaveNo,
+			bytes: [...drumWaveBytes],
+			sampleNo,
+			sampleRef: {
+				$ref: `#/samples/${sampleNo}`,
+			},
+		};
+		drumWaves.push(drumWave);
+	});
+
+	return drumWaves;
+}
+
 function makeTones(bytes, json) {
 	console.assert(bytes?.length && Array.isArray(json?.waves));
 
@@ -441,20 +478,20 @@ function makeDrumSets(progBytes, memMap) {
 	const drumSets = [];
 	console.assert(isValidRange(memMap.tableDrumNotes));
 	const drumSetNotes = splitArrayByN(progBytes.slice(...memMap.tableDrumNotes), 256).map((packet) => splitArrayByN(packet, 2).map((e) => makeValue2ByteBE(e)));
-	drumSetNotes.forEach((sampleNos, drumSetNo) => {
+	drumSetNotes.forEach((drumWaveNos, drumSetNo) => {
 		const prog = tableDrums.indexOf(drumSetNo);
 		verifyData(prog !== -1);
 
 		const notes = {};
-		sampleNos.forEach((sampleNo, noteNo) => {
-			if (sampleNo === 0x1ff) {
+		drumWaveNos.forEach((drumWaveNo, noteNo) => {
+			if (drumWaveNo === 0x1ff) {
 				return;
 			}
 			const note = {
 				name: drumNotes[prog][noteNo],
-				sampleNo,
-				sampleRef: {
-					$ref: `#/samples/${sampleNo}`,
+				drumWaveNo,
+				drumWaveRef: {
+					$ref: `#/drumWaves/${drumWaveNo}`,
 				},
 			};
 			notes[noteNo] = note;
@@ -528,4 +565,51 @@ function makeDrumMaps(tableDrums, json) {
 	}
 
 	return drumMaps;
+}
+
+function addWaveNames(json) {
+	console.assert(Array.isArray(json?.tones) && Array.isArray(json?.waves));
+
+	json.tones.forEach((tone) => {
+		tone.voices.forEach((voice) => {
+			const wave = json.waves[voice.waveNo];
+			if (!wave.name) {
+				wave.name = tone.name.toLowerCase();
+			}
+		});
+	});
+}
+
+function addDrumWaveNames(json) {
+	console.assert(Array.isArray(json?.drumSets) && Array.isArray(json?.drumWaves));
+
+	json.drumSets.forEach((drumSet) => {
+		Object.values(drumSet.notes).forEach((note) => {
+			const drumWave = json.drumWaves[note.drumWaveNo];
+			if (!drumWave.name && note.name) {
+				drumWave.name = `${note.name.toLowerCase()}`;
+			}
+		});
+	});
+}
+
+function addSampleNames(json) {
+	console.assert(Array.isArray(json?.waves) && Array.isArray(json?.drumWaves));
+
+	json.waves.forEach((wave) => {
+		wave.sampleSlots.forEach((sampleSlot, i) => {
+			const sample = json.samples[sampleSlot.sampleNo];
+			if (!sample.name && wave.name) {
+				const suffix = (wave.sampleSlots.length > 1) ? ` #${i + 1}` : '';
+				sample.name = `${wave.name.toLowerCase()}${suffix}`;
+			}
+		});
+	});
+
+	json.drumWaves.forEach((drumWave) => {
+		const sample = json.samples[drumWave.sampleNo];
+		if (!sample.name && drumWave.name) {
+			sample.name = `${drumWave.name.toLowerCase()}`;
+		}
+	});
 }

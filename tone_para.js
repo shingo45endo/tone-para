@@ -535,6 +535,7 @@ try {
 					drumSetNames:       [0x016a80, 0x016ae0],
 					waves:              [0x0176a2, 0x018419],
 					tableWaves:         [0x01841a, 0x018532],
+					tableDrumWaves:     [0x018532, 0x018b9e],
 					tableDrumNotes:     [0x018b9e, 0x01959e],
 
 					// PCM
