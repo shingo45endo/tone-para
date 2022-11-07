@@ -48,6 +48,45 @@ export function removePrivateProp(json) {
 	}
 }
 
+export function addNamesFromRefs(json) {
+	addNamesFromRefsRecursive(json, json);
+
+	function addNamesFromRefsRecursive(current, json) {
+		console.assert(Array.isArray(current) || typeof current === 'object');
+		console.assert(Array.isArray(json) || typeof json === 'object');
+		if (Array.isArray(current)) {
+			for (const elem of current) {
+				if (Array.isArray(elem) || typeof elem === 'object') {
+					addNamesFromRefsRecursive(elem, json);
+				}
+			}
+		} else {
+			if ('$ref' in current) {
+				const tokens = current.$ref.split('/');
+				console.assert(tokens[0] === '#');
+				let obj = json;
+				for (const token of tokens.slice(1)) {
+					obj = obj[token];
+				}
+				if (obj?.name) {
+					if (!current.name) {
+						current.name = obj.name;
+					} else {
+						console.assert(current.name === obj.name);
+					}
+				}
+			} else {
+				for (const [key, value] of Object.entries(current)) {
+					console.assert(key !== '$ref');
+					if (Array.isArray(value) || typeof value === 'object') {
+						addNamesFromRefsRecursive(value, json);
+					}
+				}
+			}
+		}
+	}
+}
+
 export function isValidRange(ranges) {
 	if (!Array.isArray(ranges) || ranges.length !== 2 || !ranges.every((e) => Number.isInteger(e))) {
 		return false;
