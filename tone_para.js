@@ -15,6 +15,7 @@ import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
 import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForTG100} from './bin2json_tg100.js';
+import {binToJsonForQY2x} from './bin2json_qy2x.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
 import {midToJsonForAG10} from './mid2json_ag10.js';
 import {binToJsonForGMega} from './bin2json_gmega.js';
@@ -36,6 +37,7 @@ const argv = yargs.
 			'mu100', 'mu90', 'mu80', 'mu50',
 			'tg300',
 			'tg100',
+			'mu5', 'qy22', 'qy20',
 			'ns5r',
 			'ag-10',
 			'gmega',
@@ -540,6 +542,51 @@ try {
 
 					// PCM
 					samples: [0x000000, 0x001800],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'mu5':
+			{
+				const json = binToJsonForQY2x(bytes, {
+					tableDrums:     [0x00f42a, 0x00f4aa],
+					drumSetNames:   [0x010597, 0x0105e8],
+					waves:          [0x0181ae, 0x019b7c],
+					tableWaves:     [0x019b7c, 0x019c94],
+					tableDrumWaves: [0x019c94, 0x01a864],
+					tableDrumNotes: [0x01a864, 0x01b164],
+					tones:          [0x01b164, 0x01d164],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'qy22':
+			{
+				const json = binToJsonForQY2x(bytes, {
+					waves:          [0x000100, 0x001ace],
+					tableWaves:     [0x001ace, 0x001be6],
+					tableDrumWaves: [0x001be6, 0x0027b6],
+					tableDrumNotes: [0x0027b6, 0x0030b6],
+					tones:          [0x003100, 0x005100],
+					drumSetNames:   [0x02748a, 0x0274da],
+					tableDrums:     [0x0274f5, 0x027575],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
+		case 'qy20':
+			{
+				const json = binToJsonForQY2x(bytes, {
+					tableTonesNormal: [0x00022e, 0x0002ae],
+					tableDrums:       [0x0002ae, 0x00032e],
+					tableTonesGM:     [0x00032e, 0x0003ae],
+					tableWaves:       [0x001600, 0x001700],
+					tableDrumWaves:   [0x001700, 0x002120],
+					tableDrumNotes:   [0x002120, 0x002a20],
+					waves:            [0x002a20, 0x00358d],
+					tones:            [0x003600, 0x005600],
+					drumSetNames:     [0x0274a6, 0x0274ee],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
