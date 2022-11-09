@@ -488,7 +488,7 @@ function makeDrumSets(progBytes, memMap) {
 				return;
 			}
 			const note = {
-				name: drumNotes[prog][noteNo],
+				name: drumNotes[prog][noteNo] ?? drumNotes[0][noteNo],
 				drumWaveNo,
 				drumWaveRef: {
 					$ref: `#/drumWaves/${drumWaveNo}`,
