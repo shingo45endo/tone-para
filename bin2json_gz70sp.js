@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteLE, makeValue3ByteLE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteLE, makeValue3ByteLE} from './bin2json_common.js';
 
 const toneNames = [
 	'PIANO 1',
@@ -321,14 +321,15 @@ export function binToJsonForGZ70SP(allBytes, memMap) {
 	// Tones
 	json.tones = makeTones(allBytes, memMap);
 
+	// Drum Map
+	console.assert(isValidRange(memMap.tableDrums));
+	json.drumMaps = makeDrumMaps(allBytes.slice(...memMap.tableDrums));
+
 	// Adds sample names.
 	addSampleNames(json);
 
-	// Drum Map
-	console.assert(isValidRange(memMap.tableDrums));
-	json.drumMaps = makeDrumMaps(allBytes.slice(...memMap.tableDrums), json);
-
 	removePrivateProp(json);
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -395,7 +396,6 @@ function makeTones(allBytes, memMap) {
 					sampleNo,
 					sampleRef: {
 						$ref: `#/samples/${sampleNo}`,
-						name: null,
 					},
 				})),
 				_sampleNos:     sampleNos,
@@ -416,8 +416,8 @@ function makeTones(allBytes, memMap) {
 	return tones;
 }
 
-function makeDrumMaps(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.tones));
+function makeDrumMaps(bytes) {
+	console.assert(bytes?.length);
 
 	const drumMaps = [];
 	const tableDrums = splitArrayByN(bytes, 2);
@@ -426,7 +426,6 @@ function makeDrumMaps(bytes, json) {
 			prog, toneNo,
 			toneRef: {
 				$ref: `#/tones/${toneNo}`,
-				name: json.tones[toneNo].name,
 			},
 		};
 		drumMaps.push(drumProg);
@@ -483,9 +482,4 @@ function addSampleNames(json) {
 	json.samples.forEach((sample, i) => {
 		sample.name = sampleNames[i];
 	});
-
-	// Adds sample names to tones.
-	json.tones.forEach((tone) => tone.voices.forEach((voice) => voice.sampleSlots.forEach((sampleSlot) => {
-		sampleSlot.sampleRef.name = sampleNames[sampleSlot.sampleNo];
-	})));
 }

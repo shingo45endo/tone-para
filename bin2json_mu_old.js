@@ -1,6 +1,6 @@
 import fs from 'fs';
 
-import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 
 const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
 
@@ -244,6 +244,7 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		}
 
 		removePrivateProp(json);
+		addNamesFromRefs(json);
 
 		return json;
 	};
@@ -355,7 +356,6 @@ function makeToneMaps(tableToneMap, json, kind) {
 			toneNo,
 			toneRef: {
 				$ref: `#/tones/${toneNo}`,
-				name: json.tones[toneNo].name,
 			},
 		};
 	}

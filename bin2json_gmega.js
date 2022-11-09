@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {splitArrayByN, addNamesFromRefs, isValidRange, verifyData} from './bin2json_common.js';
 
 const waveNames = [
 	'SIN',
@@ -551,6 +551,8 @@ export function binToJsonForGMega(files, memMap) {
 	console.assert(isValidRange(memMap.tableDrumNotes));
 	json.drumSets = makeDrumSets(files.PROG.slice(...memMap.tableDrumNotes), json);
 
+	addNamesFromRefs(json);
+
 	return json;
 }
 
@@ -587,7 +589,6 @@ function makeTones(files, memMap, kind) {
 				waveNo,
 				waveRef: {
 					$ref: `#/waves/${waveNo}`,
-					name: waveNames[waveNo],
 				},
 			};
 		});
@@ -632,7 +633,6 @@ function makeDrumTones(files, memMap, kind) {
 			drumWaveNo,
 			drumWaveRef: {
 				$ref: `#/drumWaves/${drumWaveNo}`,
-				name: drumWaveNames[drumWaveNo],
 			},
 		};
 		const drumTone = {
@@ -647,7 +647,7 @@ function makeDrumTones(files, memMap, kind) {
 }
 
 function makeDrumSets(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.tonesGM) && Array.isArray(json?.drumTonesGM));
+	console.assert(bytes?.length && Array.isArray(json?.tonesGM));
 
 	const drumSets = [];
 	const drumSetPackets = splitArrayByN(bytes, 128);
@@ -658,7 +658,6 @@ function makeDrumSets(bytes, json) {
 				drumToneNo,
 				drumToneRef: {
 					$ref: `#/drumTonesGM/${drumToneNo}`,
-					name: json.drumTonesGM[drumToneNo].name,
 				},
 			};
 			notes[noteNo] = note;

@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
 
 export function binToJsonForSC88Pro(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -24,9 +24,10 @@ export function binToJsonForSC88Pro(allBytes, memMap) {
 	json.toneMaps = makeToneMaps(tableToneMap, json);
 
 	// Drum Map
-	json.drumMaps = makeDrumMaps(tableDrumMap, json);
+	json.drumMaps = makeDrumMaps(tableDrumMap);
 
 	removePrivateProp(json);
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -50,9 +51,10 @@ export function binToJsonForSC88(allBytes, memMap) {
 
 	// Drum Map
 	const tableDrumMap = makeTableOfDrumMapForSC88(allBytes, memMap);
-	json.drumMaps = makeDrumMaps(tableDrumMap, json);
+	json.drumMaps = makeDrumMaps(tableDrumMap);
 
 	removePrivateProp(json);
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -202,7 +204,6 @@ function makeTones(allBytes, tonesRanges, json) {
 					waveNo,
 					waveRef: {
 						$ref: `#/waves/${waveNo}`,
-						name: json.waves[waveNo].name,
 					},
 				};
 				return voice;
@@ -258,7 +259,6 @@ function makeDrumSets(allBytes, memMap, json) {
 					toneNo,
 					toneRef: {
 						$ref: `#/tones/${toneNo}`,
-						name: json.tones[toneNo].name,
 					},
 				};
 				notes[noteNo] = note;
@@ -309,7 +309,6 @@ function makeCombis(allBytes, combisRange, tableToneMap, json) {
 				toneNo,
 				toneRef: {
 					$ref: `#/tones/${toneNo}`,
-					name: json.tones[toneNo].name,
 				},
 			});
 		});
@@ -375,7 +374,6 @@ function makeToneMaps(tableToneMap, json) {
 				toneNo,
 				toneRef: {
 					$ref: `#/tones/${toneNo}`,
-					name: tone.name,
 				},
 			};
 		} else if (combi) {
@@ -385,7 +383,6 @@ function makeToneMaps(tableToneMap, json) {
 				combiNo,
 				combiRef: {
 					$ref: `#/combis/${combiNo}`,
-					name: combi.name,
 				},
 			};
 		} else {
@@ -395,8 +392,8 @@ function makeToneMaps(tableToneMap, json) {
 	}
 }
 
-function makeDrumMaps(tableDrumMap, json) {
-	console.assert(tableDrumMap && Array.isArray(json?.drumSets));
+function makeDrumMaps(tableDrumMap) {
+	console.assert(tableDrumMap);
 
 	const drumMaps = [];
 	for (const bankL of seqBankL) {
@@ -411,7 +408,6 @@ function makeDrumMaps(tableDrumMap, json) {
 				drumSetNo,
 				drumSetRef: {
 					$ref: `#/drumSets/${drumSetNo}`,
-					name: json.drumSets[drumSetNo].name,
 				},
 			};
 			drumMaps.push(drumProg);

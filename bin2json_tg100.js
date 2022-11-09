@@ -321,7 +321,7 @@ export function binToJsonForTG100(files, memMap) {
 
 	// Tone Map
 	for (const kind of ['GM', 'DOC', 'CMType1', 'CMType2']) {
-		json[`toneMaps${kind}`] = makeToneMaps(files.PROG, memMap, json, kind);
+		json[`toneMaps${kind}`] = makeToneMaps(files.PROG, memMap, kind);
 	}
 
 	// Drum Map
@@ -508,8 +508,8 @@ function makeDrumSets(progBytes, memMap) {
 	return drumSets;
 }
 
-function makeToneMaps(progBytes, memMap, json, kind) {
-	console.assert(progBytes?.length && memMap && Array.isArray(json?.tones));
+function makeToneMaps(progBytes, memMap, kind) {
+	console.assert(progBytes?.length && memMap);
 
 	console.assert(isValidRange(memMap.tableBanks));
 	const tableBanks = progBytes.slice(...memMap.tableBanks);
@@ -532,7 +532,6 @@ function makeToneMaps(progBytes, memMap, json, kind) {
 			toneNo,
 			toneRef: {
 				$ref: `#/tones/${toneNo}`,
-				name: json.tones[toneNo].name,
 			},
 		};
 		toneMaps.push(toneProg);
@@ -558,7 +557,6 @@ function makeDrumMaps(tableDrums, json) {
 			drumSetNo,
 			drumSetRef: {
 				$ref: `#/drumSets/${drumSetNo}`,
-				name: json.drumSets[drumSetNo].name,
 			},
 		};
 		drumMaps.push(drumProg);

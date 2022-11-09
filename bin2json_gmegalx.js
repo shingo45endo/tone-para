@@ -1,4 +1,4 @@
-import {makeValue2ByteLE, splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {makeValue2ByteLE, addNamesFromRefs, splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
 const drumToneNames = [
 	'BOB BD',
@@ -152,6 +152,8 @@ export function binToJsonForGMegaLx(allBytes, memMap) {
 	console.assert(isValidRange(memMap.tableDrumNotes));
 	json.drumSets = makeDrumSets(allBytes.slice(...memMap.tableDrumNotes), json);
 
+	addNamesFromRefs(json);
+
 	return json;
 }
 
@@ -202,7 +204,6 @@ function makeDrumTones(bytes) {
 //			drumWaveNo,
 //			drumWaveRef: {
 //				$ref: `#/drumWaves/${drumWaveNo}`,
-//				name: drumToneWaveNames[drumWaveNo],
 //			},
 		};
 		const drumTone = {
@@ -217,7 +218,7 @@ function makeDrumTones(bytes) {
 }
 
 function makeDrumSets(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.tones) && Array.isArray(json?.drumTones));
+	console.assert(bytes?.length && Array.isArray(json?.tones));
 
 	const drumSets = [];
 	const drumSetPackets = splitArrayByN(bytes, 128);
@@ -228,7 +229,6 @@ function makeDrumSets(bytes, json) {
 				drumToneNo,
 				drumToneRef: {
 					$ref: `#/drumTones/${drumToneNo}`,
-					name: json.drumTones[drumToneNo].name,
 				},
 			};
 			notes[noteNo] = note;

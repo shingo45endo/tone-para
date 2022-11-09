@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, verifyData, isValidRange, makeValue2ByteBE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE} from './bin2json_common.js';
 
 export function binToJsonForTG300(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -14,17 +14,18 @@ export function binToJsonForTG300(allBytes, memMap) {
 
 	// Tones
 	console.assert(isValidRange(memMap.tones));
-	json.tones = makeTones(allBytes.slice(...memMap.tones), json);
+	json.tones = makeTones(allBytes.slice(...memMap.tones));
 
 	// Tone Map
 	const tableToneMap = makeTableOfToneMap(allBytes, memMap, json);
 	for (const kind of ['GM_A', 'GM_B']) {
 		if (memMap[`tableTones${kind}`]) {
-			json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
+			json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, kind);
 		}
 	}
 
 	removePrivateProp(json);
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -46,8 +47,8 @@ function makeWaves(bytes) {
 	return waves;
 }
 
-function makeTones(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.waves));
+function makeTones(bytes) {
+	console.assert(bytes?.length);
 
 	const tones = [];
 	let index = 0;
@@ -69,7 +70,6 @@ function makeTones(bytes, json) {
 				waveNo,
 				waveRef: {
 					$ref: `#/waves/${waveNo}`,
-					name: json.waves[waveNo].name,
 				},
 			};
 			voices.push(voice);
@@ -83,7 +83,6 @@ function makeTones(bytes, json) {
 			_offset: index,
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(tone.name));
-
 		tones.push(tone);
 
 		index += size;
@@ -93,8 +92,8 @@ function makeTones(bytes, json) {
 	return tones;
 }
 
-function makeToneMaps(tableToneMap, json, kind) {
-	console.assert(tableToneMap && Array.isArray(json?.tones));
+function makeToneMaps(tableToneMap, kind) {
+	console.assert(tableToneMap);
 
 	const toneMaps = [];
 	if (kind === 'GM_A') {
@@ -134,7 +133,6 @@ function makeToneMaps(tableToneMap, json, kind) {
 			toneNo,
 			toneRef: {
 				$ref: `#/tones/${toneNo}`,
-				name: json.tones[toneNo].name,
 			},
 		};
 	}

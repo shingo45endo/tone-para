@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE, makeValue4ByteBE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 
 export function binToJsonForNS5R(files, memMap) {
 	console.assert(files?.PROG?.length && files?.PCM.length && memMap);
@@ -25,17 +25,18 @@ export function binToJsonForNS5R(files, memMap) {
 	json.drumTones = makeDrumTones(files.PROG.slice(...memMap.drumTones));
 
 	// Drum Sets
-	json.drumSets = makeDrumSets(files.PCM, memMap, json);
+	json.drumSets = makeDrumSets(files.PCM, memMap);
 
 	// Tones
 	console.assert(isValidRange(memMap.tones));
-	json.tones = makeTones(files.PROG.slice(...memMap.tones), json);
+	json.tones = makeTones(files.PROG.slice(...memMap.tones));
 
 	// Combinations
 	console.assert(isValidRange(memMap.combis));
 	json.combis = makeCombis(files.PROG.slice(...memMap.combis), json);
 
 	removePrivateProp(json);
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -80,8 +81,8 @@ function makeWaves(bytes) {
 	return waves;
 }
 
-function makeTones(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json.waves) && Array.isArray(json.drumSets));
+function makeTones(bytes) {
+	console.assert(bytes?.length);
 
 	const tones = [];
 	let index = 0;
@@ -107,7 +108,6 @@ function makeTones(bytes, json) {
 						waveNo: no,
 						waveRef: {
 							$ref: `#/waves/${no}`,
-							name: json.waves[no].name,
 						},
 					};
 					voices.push(voice);
@@ -121,7 +121,6 @@ function makeTones(bytes, json) {
 						drumSetNo: no,
 						drumSetRef: {
 							$ref: `#/drumSets/${no}`,
-							name: json.drumSets[no].name,
 						},
 					};
 					voices.push(voice);
@@ -201,7 +200,6 @@ function makeCombis(bytes, json) {
 					toneNo: toneRef.toneNo,
 					toneRef: {
 						$ref: `#/tones/${toneRef.toneNo}`,
-						name: toneRef.name,
 					},
 				};
 				toneSlots.push(tone);
@@ -211,7 +209,6 @@ function makeCombis(bytes, json) {
 					drumToneNo: drumToneRef.drumToneNo,
 					drumToneRef: {
 						$ref: `#/drumTones/${drumToneRef.drumToneNo}`,
-						name: drumToneRef.name,
 					},
 				};
 				toneSlots.push(drumTone);
@@ -241,8 +238,8 @@ function makeCombis(bytes, json) {
 	return combis;
 }
 
-function makeDrumSets(pcmBytes, memMap, json) {
-	console.assert(pcmBytes?.length && memMap && Array.isArray(json?.drumSamples));
+function makeDrumSets(pcmBytes, memMap) {
+	console.assert(pcmBytes?.length && memMap);
 
 	console.assert(isValidRange(memMap.drumSetNames));
 	const drumNames = splitArrayByN(pcmBytes.slice(...memMap.drumSetNames), 10).map((e) => String.fromCharCode(...e));
@@ -280,7 +277,6 @@ function makeDrumSets(pcmBytes, memMap, json) {
 					drumSampleNo,
 					drumSampleRef: {
 						$ref: `#/drumSamples/${drumSampleNo}`,
-						name: json.drumSamples[drumSampleNo].name,
 					},
 				};
 				const noteNo = 12 + i;

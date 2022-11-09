@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData, makeValue2ByteLE} from './bin2json_common.js';
+import {splitArrayByN, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteLE} from './bin2json_common.js';
 
 const sampleNames = [
 	'Acoustic Bass Drum',
@@ -275,11 +275,13 @@ export function binToJsonForCM32L(allBytes, memMap) {
 
 	// Tones
 	console.assert(Array.isArray(memMap.tonesRanges));
-	json.tones = makeTones(allBytes, memMap.tonesRanges, json);
+	json.tones = makeTones(allBytes, memMap.tonesRanges);
 
 	// Drum Set
 	console.assert(isValidRange(memMap.drumSet));
-	json.drumSet = makeDrumSet(allBytes.slice(...memMap.drumSet), json);
+	json.drumSet = makeDrumSet(allBytes.slice(...memMap.drumSet));
+
+	addNamesFromRefs(json);
 
 	return json;
 }
@@ -305,8 +307,8 @@ function makeSamples(bytes) {
 	return samples;
 }
 
-function makeTones(allBytes, tonesRanges, json) {
-	console.assert(allBytes?.length && Array.isArray(tonesRanges) && tonesRanges.every((range) => isValidRange(range)) && Array.isArray(json?.samples));
+function makeTones(allBytes, tonesRanges) {
+	console.assert(allBytes?.length && Array.isArray(tonesRanges) && tonesRanges.every((range) => isValidRange(range)));
 
 	const regions = tonesRanges.map((range) => [...allBytes.slice(...range)]);
 	regions.splice(2, 0, (new Array(14 * 64)).fill(0));	// For User Timbres
@@ -351,7 +353,6 @@ function makeTones(allBytes, tonesRanges, json) {
 					sampleNo,
 					sampleRef: {
 						$ref: `#/samples/${sampleNo}`,
-						name: json.samples[sampleNo].name,
 					},
 				});
 			}
@@ -374,8 +375,8 @@ function makeTones(allBytes, tonesRanges, json) {
 	return tones;
 }
 
-function makeDrumSet(bytes, json) {
-	console.assert(bytes?.length && json?.tones);
+function makeDrumSet(bytes) {
+	console.assert(bytes?.length);
 
 	const notes = {};
 	const drumNotePackets = splitArrayByN(bytes, 4);
@@ -390,7 +391,6 @@ function makeDrumSet(bytes, json) {
 			toneNo,
 			toneRef: {
 				$ref: `#/tones/${toneNo}`,
-				name: json.tones[toneNo].name,
 			},
 		};
 		notes[noteNo] = note;

@@ -1,4 +1,4 @@
-import {splitArrayByN, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
+import {splitArrayByN, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
 
 export const [binToJsonForSC8820, binToJsonForSCD70] = [
 	makeTableOfDrumMapForSC8820,
@@ -31,25 +31,27 @@ export const [binToJsonForSC8820, binToJsonForSCD70] = [
 
 		// Tones
 		console.assert(isValidRange(memMap.tones));
-		json.tones = makeTones(allBytes.slice(...memMap.tones), json);
+		json.tones = makeTones(allBytes.slice(...memMap.tones));
 
 		// Tones (4-voice)
 		console.assert(isValidRange(memMap.tones4));
-		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4), json);
+		json.tones4 = makeTones4(allBytes.slice(...memMap.tones4));
 
 		// Legato
 		console.assert(isValidRange(memMap.combis));
-		json.combis = makeCombis(allBytes.slice(...memMap.combis), tableToneMap, json);
+		json.combis = makeCombis(allBytes.slice(...memMap.combis), tableToneMap);
 
 		// Drum Sets
 		console.assert(isValidRange(memMap.drumSets));
-		json.drumSets = makeDrumSets(allBytes, memMap, tableDrumMap, json);
+		json.drumSets = makeDrumSets(allBytes, memMap, tableDrumMap);
 
 		// Tone Map
-		json.toneMaps = makeToneMaps(tableToneMap, json);
+		json.toneMaps = makeToneMaps(tableToneMap);
 
 		// Drum Map
-		json.drumMaps = makeDrumMaps(tableDrumMap, json);
+		json.drumMaps = makeDrumMaps(tableDrumMap);
+
+		addNamesFromRefs(json);
 
 		return json;
 	};
@@ -126,8 +128,8 @@ function makeWaves(bytes) {
 	return waves;
 }
 
-function makeTones(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.waves));
+function makeTones(bytes) {
+	console.assert(bytes?.length);
 
 	const tones = [];
 	const tonePackets = splitArrayByN(bytes, 256);
@@ -147,7 +149,6 @@ function makeTones(bytes, json) {
 				waveNo,
 				waveRef: {
 					$ref: `#/waves/${waveNo}`,
-					name: json.waves[waveNo].name,
 				},
 			};
 			voices.push(voice);
@@ -166,8 +167,8 @@ function makeTones(bytes, json) {
 	return tones;
 }
 
-function makeTones4(bytes, json) {
-	console.assert(bytes?.length && Array.isArray(json?.waves));
+function makeTones4(bytes) {
+	console.assert(bytes?.length);
 
 	const tones4 = [];
 	const tonePackets = splitArrayByN(bytes, 488);
@@ -183,7 +184,6 @@ function makeTones4(bytes, json) {
 				waveNo,
 				waveRef: {
 					$ref: `#/waves/${waveNo}`,
-					name: json.waves[waveNo].name,
 				},
 			};
 			voices.push(voice);
@@ -202,8 +202,8 @@ function makeTones4(bytes, json) {
 	return tones4;
 }
 
-function makeCombis(bytes, tableToneMap, json) {
-	console.assert(bytes?.length && tableToneMap && Array.isArray(json?.tones));
+function makeCombis(bytes, tableToneMap) {
+	console.assert(bytes?.length && tableToneMap);
 
 	const combis = [];
 	const combiPackets = splitArrayByN(bytes, 24);
@@ -220,7 +220,6 @@ function makeCombis(bytes, tableToneMap, json) {
 				toneNo,
 				toneRef: {
 					$ref: `#/tones/${toneNo}`,
-					name: json.tones[toneNo].name,
 				},
 			});
 		});
@@ -237,8 +236,8 @@ function makeCombis(bytes, tableToneMap, json) {
 	return combis;
 }
 
-function makeDrumSets(allBytes, memMap, tableDrumMap, json) {
-	console.assert(allBytes?.length && memMap && tableDrumMap && Array.isArray(json?.tones));
+function makeDrumSets(allBytes, memMap, tableDrumMap) {
+	console.assert(allBytes?.length && memMap && tableDrumMap);
 
 	const drumSets = [];
 	console.assert(isValidRange(memMap.drumSets));
@@ -267,7 +266,6 @@ function makeDrumSets(allBytes, memMap, tableDrumMap, json) {
 				toneNo,
 				toneRef: {
 					$ref: `#/tones/${toneNo}`,
-					name: json.tones[toneNo].name,
 				},
 			};
 			notes[noteNo] = note;
@@ -316,8 +314,8 @@ const seqBankL = [
 	...[...new Array(128)].map((_, i) => i).slice(5),	// 5, 6, ..., 127
 ];
 
-function makeToneMaps(tableToneMap, json) {
-	console.assert(tableToneMap && Array.isArray(json?.tones) && Array.isArray(json?.tones4) && Array.isArray(json?.combis));
+function makeToneMaps(tableToneMap) {
+	console.assert(tableToneMap);
 
 	const toneMaps = [];
 	for (const bankL of seqBankL) {
@@ -359,7 +357,6 @@ function makeToneMaps(tableToneMap, json) {
 				combiNo: no,
 				combiRef: {
 					$ref: `#/combis/${no}`,
-					name: json.combis[no].name,
 				},
 			};
 		} else if (is4Voice) {
@@ -369,7 +366,6 @@ function makeToneMaps(tableToneMap, json) {
 				toneNo: no,
 				toneRef: {
 					$ref: `#/tones4/${no}`,
-					name: json.tones4[no].name,
 				},
 			};
 		} else {
@@ -378,15 +374,14 @@ function makeToneMaps(tableToneMap, json) {
 				toneNo: no,
 				toneRef: {
 					$ref: `#/tones/${no}`,
-					name: json.tones[no].name,
 				},
 			};
 		}
 	}
 }
 
-function makeDrumMaps(tableDrumMap, json) {
-	console.assert(tableDrumMap && Array.isArray(json?.drumSets));
+function makeDrumMaps(tableDrumMap) {
+	console.assert(tableDrumMap);
 
 	const drumMaps = [];
 	for (const bankL of seqBankL) {
@@ -401,7 +396,6 @@ function makeDrumMaps(tableDrumMap, json) {
 				drumSetNo,
 				drumSetRef: {
 					$ref: `#/drumSets/${drumSetNo}`,
-					name: json.drumSets[drumSetNo].name,
 				},
 			};
 			drumMaps.push(drumProg);
