@@ -118,6 +118,11 @@ function makeTones(bytes, json) {
 			const voiceBytes = voicePackets[i];
 			const waveNo = ((voiceBytes[0] & 0x0f) << 4) | (voiceBytes[1] & 0x0f);
 			const voice = {
+				level:  commonBytes[1 + i],
+				pitch:  commonBytes[8 + i],
+				detune: commonBytes[3 + i],
+				pitchRateScaling:     commonBytes[6 + 4 * i],
+				pitchRateScalingNote: commonBytes[7 + 4 * i],
 				bytes: [...voiceBytes],
 				waveNo,
 				waveRef: {
