@@ -32,6 +32,15 @@ export function binToJsonForMU(allBytes, memMap) {
 		json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
 	}
 
+	// Drum Map
+	for (const kind of ['XGBasic', 'XGNative', 'SFX', 'GS', 'TG300B', 'GM2Basic', 'GM2Native']) {
+		const key = `tableDrums${kind}`;
+		if (memMap[key]) {
+			console.assert(isValidRange(memMap[key]));
+			json[`drumMaps${kind}`] = makeDrumMaps(allBytes.slice(...memMap[key]), json, kind);
+		}
+	}
+
 	removePrivateProp(json);
 	addNamesFromRefs(json);
 
@@ -222,6 +231,41 @@ function makeToneMaps(tableToneMap, json, kind) {
 			},
 		};
 	}
+}
+
+function makeDrumMaps(tableDrums, json, kind) {
+	console.assert(tableDrums?.length && Array.isArray(json?.drumSets));
+
+	const drumSetProgs = json.drumSets.map((drumSet) => tableDrums.indexOf(drumSet.drumSetNo));
+
+	const bankM = {
+		XGBasic:   127,
+		XGNative:  127,
+		SFX:       126,
+		GS:          0,
+		TG300B:      0,
+		GM2Basic:  120,
+		GM2Native: 120,
+	}[kind];
+
+	const drumMaps = [];
+	for (let prog = 0; prog < 128; prog++) {
+		if (!drumSetProgs.includes(prog)) {
+			continue;
+		}
+		const drumSetNo = tableDrums[prog];
+		verifyData(0 <= drumSetNo && drumSetNo < json.drumSets.length);
+		const drumProg = {
+			bankM, prog,
+			drumSetNo,
+			drumSetRef: {
+				$ref: `#/drumSets/${drumSetNo}`,
+			},
+		};
+		drumMaps.push(drumProg);
+	}
+
+	return drumMaps;
 }
 
 function makeTableOfToneMap(bytes, memMap, json) {
