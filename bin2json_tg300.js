@@ -9,8 +9,7 @@ export function binToJsonForTG300(allBytes, memMap) {
 	};
 
 	// Waves
-	console.assert(isValidRange(memMap.waveNames));
-	json.waves = makeWaves(allBytes.slice(...memMap.waveNames));
+	json.waves = makeWaves(allBytes, memMap);
 
 	// Tones
 	console.assert(isValidRange(memMap.tones));
@@ -30,17 +29,45 @@ export function binToJsonForTG300(allBytes, memMap) {
 	return json;
 }
 
-function makeWaves(bytes) {
-	console.assert(bytes?.length);
+function makeWaves(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
+	console.assert(isValidRange(memMap.waves));
+	const wavesPackets = splitArrayByN(allBytes.slice(...memMap.waves), 12);
+
+	console.assert(isValidRange(memMap.tableWaveAddrs));
+	const tableWaveAddrs = splitArrayByN(allBytes.slice(...memMap.tableWaveAddrs), 2).map((e) => makeValue2ByteBE(e));
+	const tableWaves = tableWaveAddrs.map((addr) => (addr - tableWaveAddrs[0]) / 12);
+	console.assert(tableWaves.every((e) => Number.isInteger(e)));
+
+	console.assert(isValidRange(memMap.waveNames));
+	const waveNames = splitArrayByN(allBytes.slice(...memMap.waveNames), 8).map((e) => String.fromCharCode(...e));
+	verifyData(waveNames.every((e) => /^[\x20-\x7f]*$/u.test(e)));
 
 	const waves = [];
-	const wavePackets = splitArrayByN(bytes, 8);
-	wavePackets.forEach((waveBytes, waveNo) => {
+	tableWaves.forEach((indexBegin, waveNo) => {
+		verifyData(indexBegin < wavesPackets.length);
+		const indexEnd = tableWaves[waveNo + 1] ?? wavesPackets.length;
+
+		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes) => {
+//			const sampleNo = waveBytes[1];
+			const sampleSlot = {
+				low:  waveBytes[10],
+				high: waveBytes[11],
+				bytes: [...waveBytes],
+//				sampleNo,
+//				sampleRef: {
+//					$ref: `#/samples/${sampleNo}`,
+//				},
+			};
+			return sampleSlot;
+		});
+
 		const wave = {
 			waveNo,
-			name: String.fromCharCode(...waveBytes),
+			name: waveNames[waveNo],
+			sampleSlots,
 		};
-		verifyData(/^[\x20-\x7f]*$/u.test(wave.name));
 		waves.push(wave);
 	});
 

@@ -517,7 +517,9 @@ try {
 		case 'tg300':
 			{
 				const json = binToJsonForTG300(bytes, {
+					waves:          [0x000200, 0x0028d0],
 					waveNames:      [0x0028d0, 0x002ef0],
+					tableWaveAddrs: [0x002ef0, 0x003078],
 					tableToneAddrs: [0x006e2a, 0x00842a],
 					tableTonesGM_B: [0x00842a, 0x0084aa],
 					tableTonesGM_A: [0x0084aa, 0x00852a],
