@@ -114,53 +114,48 @@ function makeDrumSets(bytes, memMap) {
 
 		const drumSet = {
 			drumSetNo,
+			name: null,
 			notes,
 		};
 		drumSets.push(drumSet);
 	}
 
 	// Adds names.
-	let drumSetNameAddrs = [];
-	for (const kind of ['XG', 'SFX', 'GS', 'TG300B', 'GM2']) {
-		const tableDrumParamsRange   = memMap[`tableDrumParams${kind}`];
-		const drumSetNamesRange      = memMap[`drumSetNames${kind}`];
-		const drumNoteNamesRange     = memMap[`drumNoteNames${kind}`];
+	for (const kind of ['XGBasic', 'XGNative', 'SFX', 'GS', 'TG300B', 'GM2Basic', 'GM2Native']) {
+		const tableDrumsRange        = memMap[`tableDrums${kind}`];
+		const drumSetNamesRange      = memMap[`drumSetNames${kind.replace(/(Basic|Native)$/u, '')}`];
+		const drumNoteNamesRange     = memMap[`drumNoteNames${kind.replace(/(Basic|Native)$/u, '')}`];
 		const tableDrumSetNamesRange = memMap[`tableDrumSetNames${kind}`];
-		if (!tableDrumParamsRange || !drumSetNamesRange || !drumNoteNamesRange || !tableDrumSetNamesRange) {
+		if (!tableDrumsRange || !drumSetNamesRange || !drumNoteNamesRange || !tableDrumSetNamesRange) {
 			continue;
 		}
-		console.assert(isValidRange(tableDrumParamsRange) && isValidRange(drumSetNamesRange) && isValidRange(drumNoteNamesRange) && isValidRange(tableDrumSetNamesRange));
+		console.assert(isValidRange(tableDrumsRange) && isValidRange(drumSetNamesRange) && isValidRange(drumNoteNamesRange) && isValidRange(tableDrumSetNamesRange));
 
 		const drumSetNamePackets = splitArrayByN(bytes.slice(...drumSetNamesRange), 12);
-		drumSetNameAddrs.push(...drumSetNamePackets.map((e) => makeValue4ByteBE(e.slice(8))), drumSetNamesRange[1]);
-		drumSetNameAddrs = [...new Set(drumSetNameAddrs)].sort((a, b) => a - b);
 
-		const tableDrumParams   = bytes.slice(...tableDrumParamsRange);
+		const tableDrums = bytes.slice(...tableDrumsRange);
 		const tableDrumSetNames = bytes.slice(...tableDrumSetNamesRange);
-		console.assert(tableDrumParams.length === tableDrumSetNames.length);
+		console.assert(tableDrums.length === tableDrumSetNames.length, `${kind}: ${tableDrums.length}, ${tableDrumSetNames.length}`);
 		for (let i = 0; i < tableDrumSetNames.length; i++) {
-			const indexName  = tableDrumSetNames[i];
-			const indexParam = tableDrumParams[i];
-			const drumSet = drumSets[indexParam];
+			const drumSetNo = tableDrums[i];
+			const drumSet = drumSets[drumSetNo];
 			if (drumSet.name) {
 				continue;
 			}
 
-			const drumSetNamePacket = drumSetNamePackets[indexName];
-			const name = String.fromCharCode(...drumSetNamePacket.slice(0, 8));
-			const addr = makeValue4ByteBE(drumSetNamePacket.slice(8));
-			const index = drumSetNameAddrs.indexOf(addr);
-			console.assert(index >= 0 && index < drumSetNameAddrs.length - 1);
+			const indexName = tableDrumSetNames[i];
+			const drumSetNameBytes = drumSetNamePackets[indexName];
+			const addr = makeValue4ByteBE(drumSetNameBytes.slice(8));
 
-			const drumNoteNames = splitArrayByN(bytes.slice(drumSetNameAddrs[index], drumSetNameAddrs[index + 1]), 12).map((e) => String.fromCharCode(...e));
+			const drumNoteNames = splitArrayByN(bytes.slice(addr, addr + 12 * (128 - 13)), 12).map((e) => String.fromCharCode(...e));
 			for (const key of Object.keys(drumSet.notes)) {
 				if (!drumSet.notes[key].name) {
-					const offset = {XG: 13, SFX: 13, GS: 25, GM2: 25}[kind];
+					const offset = {XGBasic: 13, XGNative: 13, SFX: 13, GS: 25, GM2Basic: 25, GM2Native: 25}[kind];
 					drumSet.notes[key].name = drumNoteNames[Number(key) - offset];
 				}
 			}
 
-			drumSet.name = name;
+			drumSet.name = String.fromCharCode(...drumSetNameBytes.slice(0, 8));
 		}
 	}
 
