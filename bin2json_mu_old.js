@@ -1,5 +1,5 @@
 import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
-import {waveNamesMU as extraJson} from './mu_waves.js';
+import {waveNamesMU} from './mu_waves.js';
 
 function convertVoicePacketForMU90AndMU100(bytes) {
 	return [
@@ -220,9 +220,8 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		console.assert(allBytes?.length && memMap);
 
 		const json = {
-			waves: null,
+			waves: waveNamesMU.map((name, waveNo) => ({waveNo, name})),
 			tones: null,
-			...extraJson,
 		};
 
 		// Tones

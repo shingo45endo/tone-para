@@ -1,14 +1,13 @@
 import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
-import {waveNamesMU as extraJson} from './mu_waves.js';
+import {waveNamesMU} from './mu_waves.js';
 
 export function binToJsonForMU(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	const json = {
-		waves: null,
+		waves: waveNamesMU.map((name, waveNo) => ({waveNo, name})),
 		tones: null,
 		drumSets: null,
-		...extraJson,
 	};
 
 	// Tones
