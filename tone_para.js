@@ -342,6 +342,8 @@ try {
 		case 'mu2000':
 			{
 				const json = binToJsonForMU(bytes, {
+					waves:                      [0x1f55a0, 0x200af0],
+					tableWaveAddrs:             [0x200af0, 0x200ede],
 					tones:                      [0x200ee0, 0x23cece],
 					tableToneAddrs:             [0x267f50, 0x283950],
 					tableTonesMsb:              [0x283950, 0x2839d0],
@@ -381,6 +383,8 @@ try {
 		case 'mu1000':
 			{
 				const json = binToJsonForMU(bytes, {
+					waves:                      [0x164598, 0x16fae8],
+					tableWaveAddrs:             [0x16fae8, 0x16fed6],
 					tones:                      [0x16fed8, 0x1abec6],
 					tableToneAddrs:             [0x1abec8, 0x1c78c8],
 					tableTonesMsb:              [0x1c78c8, 0x1c7948],
@@ -420,6 +424,8 @@ try {
 		case 'mu128':
 			{
 				const json = binToJsonForMU(bytes, {
+					waves:                      [0x0fdb0c, 0x1084bc],
+					tableWaveAddrs:             [0x1084bc, 0x108856],
 					tones:                      [0x108858, 0x1418b2],
 					tableToneAddrs:             [0x1418b4, 0x15c6b4],
 					tableTonesMsb:              [0x15c6b4, 0x15c734],

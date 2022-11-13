@@ -1,14 +1,17 @@
-import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue3ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 import {waveNamesMU} from './mu_waves.js';
 
 export function binToJsonForMU(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
 	const json = {
-		waves: waveNamesMU.map((name, waveNo) => ({waveNo, name})),
+		waves: null,
 		tones: null,
 		drumSets: null,
 	};
+
+	// Waves
+	json.waves = makeWaves(allBytes, memMap);
 
 	// Tones
 	console.assert(isValidRange(memMap.tones));
@@ -43,6 +46,42 @@ export function binToJsonForMU(allBytes, memMap) {
 	return json;
 }
 
+function makeWaves(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
+	console.assert(isValidRange(memMap.waves));
+	const wavesPackets = splitArrayByN(allBytes.slice(...memMap.waves), 16);
+
+	console.assert(isValidRange(memMap.tableWaveAddrs));
+	const tableWaveAddrs = splitArrayByN(allBytes.slice(...memMap.tableWaveAddrs), 2).map((e) => makeValue2ByteBE(e));
+	const tableWaves = tableWaveAddrs.map((addr) => (addr - tableWaveAddrs[0]) / 16);
+	console.assert(tableWaves.every((e) => Number.isInteger(e)));
+
+	const waves = [];
+	tableWaves.forEach((indexBegin, waveNo) => {
+		verifyData(indexBegin < wavesPackets.length);
+		const indexEnd = tableWaves[waveNo + 1] ?? wavesPackets.length;
+		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes, i, a) => {
+			const sampleSlot = {
+				low:  (i > 0) ? a[i - 1][3] : 0,
+				high: waveBytes[3],
+				sampleAddr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+				bytes: [...waveBytes],
+			};
+			return sampleSlot;
+		});
+
+		const wave = {
+			waveNo,
+			name: waveNamesMU[waveNo] ?? `(Wave #${waveNo})`,
+			sampleSlots,
+		};
+		waves.push(wave);
+	});
+
+	return waves;
+}
+
 function makeTones(bytes, json) {
 	console.assert(bytes?.length && Array.isArray(json?.waves));
 
@@ -67,7 +106,6 @@ function makeTones(bytes, json) {
 				waveNo,
 				waveRef: {
 					$ref: `#/waves/${waveNo}`,
-					name: json.waves[waveNo]?.name ?? `(Wave #${waveNo})`,	// TODO: Remove
 				},
 			};
 			voices.push(voice);
