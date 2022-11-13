@@ -1,4 +1,4 @@
-{
+export const waveNamesMU = {
 	"waves": [
 		{"waveNo":   0, "name": "(Empty)"},
 		{"waveNo":   1, "name": "KT_Standar"},

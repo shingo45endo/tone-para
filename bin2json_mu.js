@@ -1,8 +1,5 @@
-import fs from 'fs';
-
 import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
-
-const extraJson = JSON.parse(fs.readFileSync('./mu_waves.json'));
+import {waveNamesMU as extraJson} from './mu_waves.js';
 
 export function binToJsonForMU(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
