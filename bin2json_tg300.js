@@ -15,11 +15,23 @@ export function binToJsonForTG300(allBytes, memMap) {
 	console.assert(isValidRange(memMap.tones));
 	json.tones = makeTones(allBytes.slice(...memMap.tones));
 
+	// Drum Sets
+	json.drumSets = makeDrumSets(allBytes, memMap);
+
 	// Tone Map
 	const tableToneMap = makeTableOfToneMap(allBytes, memMap, json);
 	for (const kind of ['GM_A', 'GM_B']) {
 		if (memMap[`tableTones${kind}`]) {
 			json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, kind);
+		}
+	}
+
+	// Drum Map
+	for (const kind of ['GM_A', 'GM_B']) {
+		const key = `tableDrums${kind}`;
+		if (memMap[key]) {
+			console.assert(isValidRange(memMap[key]));
+			json[`drumMaps${kind}`] = makeDrumMaps(allBytes.slice(...memMap[key]), json, kind);
 		}
 	}
 
@@ -50,15 +62,10 @@ function makeWaves(allBytes, memMap) {
 		const indexEnd = tableWaves[waveNo + 1] ?? wavesPackets.length;
 
 		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes) => {
-//			const sampleNo = waveBytes[1];
 			const sampleSlot = {
 				low:  waveBytes[10],
 				high: waveBytes[11],
 				bytes: [...waveBytes],
-//				sampleNo,
-//				sampleRef: {
-//					$ref: `#/samples/${sampleNo}`,
-//				},
 			};
 			return sampleSlot;
 		});
@@ -119,6 +126,87 @@ function makeTones(bytes) {
 	return tones;
 }
 
+function makeDrumSets(allBytes, memMap) {
+	console.assert(allBytes?.length && memMap);
+
+	console.assert(isValidRange(memMap.drumParams));
+	const drumParamPackets = splitArrayByN(allBytes.slice(...memMap.drumParams), 28);
+
+	console.assert(isValidRange(memMap.tableDrumNoteAddrs));
+	const tableDrumNoteAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumNoteAddrs), 256).map((bytes) => splitArrayByN(bytes, 2).map((e) => makeValue2ByteBE(e)));
+	const drumParamIndices = tableDrumNoteAddrs.map((addrs) => addrs.map((addr) => (addr !== 0x00) ? (addr - 0x3078) / 28 : -1));
+
+	console.assert(isValidRange(memMap.drumSetNames));
+	const drumSetNames = splitArrayByN(allBytes.slice(...memMap.drumSetNames), 8).map((e) => String.fromCharCode(...e));
+	console.assert(drumSetNames.length === drumParamIndices.length);
+
+	const drumSets = [];
+	for (let drumSetNo = 0; drumSetNo < drumSetNames.length; drumSetNo++) {
+		const drumNoteParams = drumParamIndices[drumSetNo].map((index) => (index >= 0) ? drumParamPackets[index] : null);
+
+		const notes = {};
+		for (let noteNo = 0; noteNo < 128; noteNo++) {
+			if (!drumNoteParams[noteNo]) {
+				continue;
+			}
+			const note = {
+				bytes: [...drumNoteParams[noteNo]],
+				_index: drumParamIndices[drumSetNo][noteNo],
+			};
+			verifyData(note.bytes[7] === 0x00 && note.bytes[15] === 0x00);
+			notes[noteNo] = note;
+		}
+
+		const drumSet = {
+			drumSetNo,
+			name: drumSetNames[drumSetNo],
+			notes,
+		};
+		drumSets.push(drumSet);
+	}
+
+	// Add note names.
+	console.assert(isValidRange(memMap.drumNoteNames));
+	const drumNoteNamesPerDrumSet = splitArrayByN(allBytes.slice(...memMap.drumNoteNames), 16).map((e) => {
+		const m = String.fromCharCode(...e).match(/([A-G])(#?)(-?\d+)\s*:(.*)/u);
+		console.assert(m);
+		return {
+			noteNo:   24 + {C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11}[m[1]] + ((m[2] === '#') ? 1 : 0) + 12 * Number(m[3]),
+			noteName: m[4],
+		};
+	}).reduce((p, _, i, a) => {
+		if (i % 62 === 0) {
+			p.push(a.slice(i, i + 62));
+		}
+		return p;
+	}, []);
+	const drumNoteNamesPerParam = new Array(drumParamPackets.length).fill();
+	drumSets.forEach((drumSet, drumSetNo) => {
+		const drumNoteNames = drumNoteNamesPerDrumSet[drumSetNo];
+		if (!drumNoteNames) {
+			return;
+		}
+		Object.entries(drumSet.notes).forEach(([noteNoStr, note]) => {
+			const noteNo = Number(noteNoStr);
+			const noteName = drumNoteNames.find((e) => e.noteNo === noteNo)?.noteName;
+			if (note._index >= 0 && noteName && !drumNoteNamesPerParam[note._index]) {
+				drumNoteNamesPerParam[note._index] = noteName;
+			}
+		});
+	});
+
+	drumSets.forEach((drumSet) => {
+		Object.values(drumSet.notes).forEach((note) => {
+			const noteName = drumNoteNamesPerParam[note._index];
+			if (noteName) {
+				note.name = noteName;
+			}
+		});
+	});
+
+	return drumSets;
+}
+
 function makeToneMaps(tableToneMap, kind) {
 	console.assert(tableToneMap);
 
@@ -163,6 +251,31 @@ function makeToneMaps(tableToneMap, kind) {
 			},
 		};
 	}
+}
+
+function makeDrumMaps(tableDrums, json) {
+	console.assert(tableDrums?.length && Array.isArray(json?.drumSets));
+
+	const drumSetProgs = json.drumSets.map((drumSet) => tableDrums.indexOf(drumSet.drumSetNo));
+
+	const drumMaps = [];
+	for (let prog = 0; prog < 128; prog++) {
+		if (!drumSetProgs.includes(prog)) {
+			continue;
+		}
+		const drumSetNo = tableDrums[prog];
+		verifyData(0 <= drumSetNo && drumSetNo < json.drumSets.length);
+		const drumProg = {
+			prog,
+			drumSetNo,
+			drumSetRef: {
+				$ref: `#/drumSets/${drumSetNo}`,
+			},
+		};
+		drumMaps.push(drumProg);
+	}
+
+	return drumMaps;
 }
 
 function makeTableOfToneMap(allBytes, memMap, json) {
