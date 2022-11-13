@@ -361,11 +361,11 @@ function makeToneMaps(tableToneMap, json, kind) {
 	}
 }
 
-function makeTableOfToneMap(bytes, memMap, json, addrSize) {
-	console.assert(bytes?.length && memMap && Array.isArray(json?.tones) && Number.isInteger(addrSize));
+function makeTableOfToneMap(allBytes, memMap, json, addrSize) {
+	console.assert(allBytes?.length && memMap && Array.isArray(json?.tones) && Number.isInteger(addrSize));
 
 	console.assert(isValidRange(memMap.tableToneAddrs));
-	const toneTables = splitArrayByN(bytes.slice(...memMap.tableToneAddrs), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
+	const toneTables = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), addrSize * 128).map((packet) => splitArrayByN(packet, addrSize).map((e) => {
 		const offset = (addrSize === 2) ? makeValue2ByteBE(e) * 2 : makeValue4ByteBE(e);
 		const tone = json.tones.filter((tone) => offset === tone._offset);
 		verifyData(tone.length === 1);
@@ -373,9 +373,9 @@ function makeTableOfToneMap(bytes, memMap, json, addrSize) {
 	}));
 
 	console.assert(isValidRange(memMap.tableTonesMsb));
-	const tableBanksMsb = bytes.slice(...memMap.tableTonesMsb);
+	const tableBanksMsb = allBytes.slice(...memMap.tableTonesMsb);
 	const tables = Object.entries(memMap).filter(([key, _]) => key.startsWith('tableTones')).reduce((p, [key, value]) => {
-		p[key] = bytes.slice(...value);
+		p[key] = allBytes.slice(...value);
 		return p;
 	}, {});
 
