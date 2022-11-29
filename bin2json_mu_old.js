@@ -338,7 +338,7 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 
 		// Tone Map
 		const tableToneMap = makeTableOfToneMap(allBytes, memMap, json, props.addrSize);
-		for (const kind of ['XGBasic', 'XGNative', 'ModelExcl', 'TG300B']) {
+		for (const kind of ['XG', 'XGBasic', 'XGNative', 'ModelExcl', 'TG300B']) {
 			if (memMap[`tableTones${kind}`]) {
 				json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
 			}
