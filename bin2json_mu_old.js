@@ -183,23 +183,124 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 	{
 		convertCommonBytes: convertCommonBytesForMU80OrLater,
 		convertVoicePacket: convertVoicePacketForMU90AndMU100,
+		addDrumSetNames: addDrumSetNamesForMU90AndMU100,
+		addDrumNoteNames: addDrumNoteNamesForMU90AndMU100,
 		voicePacketSize: 70,
+		drumParamPacketSize: 42,
 		addrSize: 4,
 		additionalMaps: ['SFX'],
+		additionalTables: {
+			tableDrumNoteNamesXG: [
+				31,	// Skim Kit
+				32,	// Slim Kit
+				36,	// RogueKit
+				37,	// Hob Kit
+				38,	// ApogeeKt
+				39,	// PergeeKt
+				40,	// BrshKit2
+				33,	// TrampKit
+				34,	// AmberKit
+				35,	// CoffinKt
+				 8,	// SFXKit 1
+				 9,	// SFXKit 2
+				41,	// TknoKtKS
+				42,	// TknoKtHi
+				43,	// TknoKtLo
+				44,	// SakuraKt
+				45,	// SlatinKt
+				46,	// StndKit#
+				 0,	// StandKit
+				11,	// StndKit2
+				12,	// Dry Kit
+				17,	// BriteKit
+				 1,	// Room Kit
+				18,	// DarKRKit
+				 2,	// Rock Kit
+				19,	// RockKit2
+				 3,	// ElctrKit
+				 4,	// AnalgKit
+				14,	// AnlgKit2
+				16,	// DanceKit
+				15,	// HipHpKit
+				13,	// JunglKit
+				 5,	// Jazz Kit
+				20,	// JazzKit2
+				 6,	// BrushKit
+				 7,	// SymphKit
+			],
+			tableDrumNoteNamesTG300B: [
+				21,	// StandKit
+				22,	// Room Kit
+				23,	// PowerKit
+				24,	// ElctrKit
+				25,	// AnalgKit
+				26,	// Jazz Kit
+				27,	// BrushKit
+				28,	// OrcheKit
+				30,	// SFX Set
+				29,	// C/M Kit
+			],
+		},
 	},
 	// MU90
 	{
 		convertCommonBytes: convertCommonBytesForMU80OrLater,
 		convertVoicePacket: convertVoicePacketForMU90AndMU100,
+		addDrumSetNames: addDrumSetNamesForMU90AndMU100,
+		addDrumNoteNames: addDrumNoteNamesForMU90AndMU100,
 		voicePacketSize: 70,
+		drumParamPacketSize: 42,
 		addrSize: 2,
 		additionalMaps: ['SFX'],
+		additionalTables: {
+			tableDrumSetNamesSFX: [
+				0x12, 0x13, ...(new Array(126)).fill(0x00),
+			],
+			tableDrumNoteNamesXG: [
+				0,	// StandKit
+				11,	// StndKit2
+				12,	// Dry Kit
+				17,	// BriteKit
+				 1,	// Room Kit
+				18,	// DarKRKit
+				 2,	// Rock Kit
+				19,	// RockKit2
+				 3,	// ElctrKit
+				 4,	// AnalgKit
+				14,	// AnlgKit2
+				16,	// DanceKit
+				15,	// HipHpKit
+				13,	// JunglKit
+				 5,	// Jazz Kit
+				20,	// JazzKit2
+				 6,	// BrushKit
+				 7,	// SymphKit
+				 8,	// SFXKit 1
+				 9,	// SFXKit 2
+				10,	// (StandKit)
+			],
+			tableDrumNoteNamesTG300B: [
+				21,	// StandKit
+				22,	// Room Kit
+				23,	// PowerKit
+				24,	// ElctrKit
+				25,	// AnalgKit
+				26,	// Jazz Kit
+				27,	// BrushKit
+				28,	// OrcheKit
+				30,	// SFX Set
+				29,	// C/M Kit
+			],
+		},
 	},
 	// MU80
 	{
 		convertCommonBytes: convertCommonBytesForMU80OrLater,
 		convertVoicePacket: convertVoicePacketForMU80,
+		addDrumSetNames: addDrumSetNamesForMU80OrLater,
+		addDrumNoteNames: addDrumNoteNamesForMU80OrLater,
 		voicePacketSize: 68,
+		drumParamPacketSize: 30,
 		addrSize: 2,
 		additionalMaps: ['SFX'],
 	},
@@ -211,7 +312,10 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 			commonBytes[1] = bytes[0];
 			return commonBytes;
 		},
+		addDrumSetNames: addDrumSetNamesForMU80OrLater,
+		addDrumNoteNames: addDrumNoteNamesForMU80OrLater,
 		voicePacketSize: 80,
+		drumParamPacketSize: 30,
 		addrSize: 2,
 		additionalMaps: ['SFX', 'DOC'],
 	},
@@ -222,11 +326,15 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		const json = {
 			waves: waveNamesMU.map((name, waveNo) => ({waveNo, name})),
 			tones: null,
+			drumSets: null,
 		};
 
 		// Tones
 		console.assert(isValidRange(memMap.tones));
 		json.tones = makeTones(allBytes.slice(...memMap.tones), props, json);
+
+		// Drum Sets
+		json.drumSets = makeDrumSets(allBytes, memMap, props);
 
 		// Tone Map
 		const tableToneMap = makeTableOfToneMap(allBytes, memMap, json, props.addrSize);
@@ -237,6 +345,15 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		}
 		for (const kind of props.additionalMaps) {
 			json[`toneMaps${kind}`] = makeToneMaps(tableToneMap, json, kind);
+		}
+
+		// Drum Map
+		for (const kind of ['XG', 'XGBasic', 'XGNative', 'SFX', 'TG300B']) {
+			const key = `tableDrums${kind}`;
+			if (memMap[key]) {
+				console.assert(isValidRange(memMap[key]));
+				json[`drumMaps${kind}`] = makeDrumMaps(allBytes.slice(...memMap[key]), json, kind);
+			}
 		}
 
 		removePrivateProp(json);
@@ -294,6 +411,248 @@ function makeTones(bytes, props, json) {
 	}
 	function convertVoicePacket(bytes) {
 		return (props.convertVoicePacket) ? props.convertVoicePacket(bytes) : bytes;
+	}
+}
+
+function makeDrumSets(allBytes, memMap, props) {
+	console.assert(allBytes?.length && memMap && props);
+
+	console.assert(isValidRange(memMap.drumParams));
+	const drumParamPackets = splitArrayByN(allBytes.slice(...memMap.drumParams), props.drumParamPacketSize);
+
+	console.assert(isValidRange(memMap.tableDrumNotes));
+	const tableDrumNoteAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumNotes), 256).map((bytes) => splitArrayByN(bytes, 2).map((e) => makeValue2ByteBE(e)));
+	const drumParamIndices = tableDrumNoteAddrs.map((addrs) => addrs.map((addr) => (addr !== 0xffff) ? addr / props.drumParamPacketSize : -1));
+
+	const drumSets = [];
+	for (let drumSetNo = 0; drumSetNo < tableDrumNoteAddrs.length; drumSetNo++) {
+		const drumNoteParams = drumParamIndices[drumSetNo].map((index) => (index >= 0) ? drumParamPackets[index] : null);
+
+		const notes = {};
+		for (let noteNo = 0; noteNo < 128; noteNo++) {
+			if (!drumNoteParams[noteNo]) {
+				continue;
+			}
+			const note = {
+				bytes: [...drumNoteParams[noteNo]],
+				_index: drumParamIndices[drumSetNo][noteNo],
+			};
+			notes[noteNo] = note;
+		}
+
+		const drumSet = {
+			drumSetNo,
+			name: `(Drum Set #${drumSetNo})`,
+			notes,
+		};
+		drumSets.push(drumSet);
+	}
+
+	// Adds names.
+	props.addDrumSetNames(allBytes, memMap, props, drumSets);
+	props.addDrumNoteNames(allBytes, memMap, props, drumSets);
+
+	return drumSets;
+}
+
+function addDrumSetNamesForMU90AndMU100(allBytes, memMap, props, drumSets) {
+	console.assert(allBytes?.length && memMap && props && Array.isArray(drumSets));
+
+	for (const kind of ['XG', 'XGBasic', 'XGNative', 'SFX', 'TG300B']) {
+		const drumSetNamesRange = memMap[`drumSetNames${kind}`] ?? memMap[`drumSetNames${kind.replace(/(Basic|Native)$/u, '')}`] ?? memMap[`drumSetNames${kind.replace(/SFX$/u, 'XGBasic')}`] ?? memMap[`drumSetNames${kind.replace(/SFX$/u, 'XG')}`];
+		if (!drumSetNamesRange) {
+			continue;
+		}
+		const drumSetNames = splitArrayByN(allBytes.slice(...drumSetNamesRange), 8).map((e) => String.fromCharCode(...e));
+
+		const tableDrumsRange = memMap[`tableDrums${kind}`] ?? memMap[`tableDrums${kind.replace(/(Basic|Native)$/u, '')}`];
+		const tableDrums = allBytes.slice(...tableDrumsRange);
+
+		const key = `tableDrumSetNames${kind.replace(/(Basic|Native)$/u, '')}`;
+		const tableDrumSetNames = (memMap[key]) ? allBytes.slice(...memMap[key]) : props.additionalTables?.[key];
+		if (!tableDrumSetNames) {
+			continue;
+		}
+
+		drumSets.forEach((drumSet, drumSetNo) => {
+			const prog = tableDrums.indexOf(drumSetNo);
+			const nameIndex = tableDrumSetNames[prog];
+			const name = drumSetNames[nameIndex];
+			verifyData(/^[\x20-\x7f]*$/u.test(name));
+			if (name) {
+				drumSet.name = name;
+			}
+		});
+	}
+}
+
+function addDrumSetNamesForMU80OrLater(allBytes, memMap, _, drumSets) {
+	console.assert(allBytes?.length && memMap && Array.isArray(drumSets));
+
+	const tableDrumSetNames = [
+		13,	// No.00: StandKit
+		14,	// No.01: Room Kit
+		15,	// No.02: PowerKit
+		16,	// No.03: ElectKit
+		17,	// No.04: AnalgKit
+		18,	// No.05: Jazz Kit
+		19,	// No.06: BrushKit
+		20,	// No.07: OrcheKit
+		22,	// No.08: C/M Kit
+		21,	// No.09: SFX Set
+		 0,	// No.10: StandKit
+		 2,	// No.11: Room Kit
+		 3,	// No.12: Rock Kit
+		 4,	// No.13: ElectKit
+		 5,	// No.14: AnalgKit
+		 6,	// No.15: Jazz Kit
+		 7,	// No.16: BrushKit
+		 8,	// No.17: ClascKit
+		 9,	// No.18: SFX Kit1
+		10,	// No.19: SFX Kit2
+		11,	// No.20: SilenKit
+		 1,	// No.21: Stnd2Kit
+		24,	// No.22: DOC Kit
+	];
+
+	const drumSetNamesRanges = Object.keys(memMap).filter((key) => key.startsWith('drumSetNames')).map((key) => memMap[key]);
+	const drumSetNamesRange = [Math.min(...drumSetNamesRanges.map(([begin, _]) => begin)), Math.max(...drumSetNamesRanges.map(([_, end]) => end))];
+	console.assert(isValidRange(drumSetNamesRange));
+	const drumSetNames = splitArrayByN(allBytes.slice(...drumSetNamesRange), 8).map((e) => String.fromCharCode(...e));
+
+	drumSets.forEach((drumSet, drumSetNo) => {
+		const name = drumSetNames[tableDrumSetNames[drumSetNo]];
+		verifyData(/^[\x20-\x7f]*$/u.test(name));
+		if (name) {
+			drumSet.name = name;
+		}
+	});
+}
+
+function addDrumNoteNamesForMU90AndMU100(allBytes, memMap, props, drumSets) {
+	console.assert(allBytes?.length && memMap && props && Array.isArray(drumSets));
+
+	for (const kind of ['XG', 'TG300B']) {
+		const drumNoteNamesRange = memMap[`drumNoteNames${kind}`];
+		console.assert(isValidRange(drumNoteNamesRange));
+
+		const drumNotesNum = (kind !== 'TG300B') ? 79 : 64;
+		const drumNoteNameLists = splitArrayByN(allBytes.slice(...drumNoteNamesRange), 12).map((e) => String.fromCharCode(...e)).reduce((p, _, i, a) => {
+			const rest = a.length - i;
+			if (i % drumNotesNum === 0 && rest >= drumNotesNum) {
+				p.push(a.slice(i, i + ((rest >= drumNotesNum * 2) ? drumNotesNum : rest)));
+			}
+			return p;
+		}, []);
+
+		const tableDrumNoteNames = props.additionalTables[`tableDrumNoteNames${kind}`];
+		console.assert(Array.isArray(tableDrumNoteNames));
+
+		drumSets.forEach((drumSet, drumSetNo) => {
+			const index = tableDrumNoteNames.indexOf(drumSetNo);
+			if (index === -1) {
+				return;
+			}
+
+			const drumNoteNames = drumNoteNameLists[index];
+			for (const key of Object.keys(drumSet.notes)) {
+				if (!drumSet.notes[key].name) {
+					const offset = {XG: 13, TG300B: 25}[kind];
+					const name = drumNoteNames[Number(key) - offset];
+					verifyData(/^[\x20-\x7f]*$/u.test(name));
+					drumSet.notes[key].name = name;
+				}
+			}
+		});
+	}
+}
+
+function addDrumNoteNamesForMU80OrLater(allBytes, memMap, props, drumSets) {
+	console.assert(allBytes?.length && memMap && props && Array.isArray(drumSets));
+
+	const drumNoteNamesOthers = splitArrayByN(allBytes.slice(...memMap.drumNoteNamesOthers), 12).map((e) => String.fromCharCode(...e));
+
+	for (const kind of ['XG', 'TG300B']) {
+		const tableIndexToDrumSetNos = {
+			XG: [
+				10,	// StandKit
+				21,	// StndKit2
+				11,	// Room Kit
+				12,	// Rock Kit
+				13,	// ElectKit
+				14,	// AnalgKit
+				15,	// Jazz Kit
+				16,	// BrushKit
+				17,	// ClascKit
+				18,	// SFX Kit1
+				19,	// SFX Kit2
+				20,	// SilenKit
+			],
+			TG300B: [
+				0,	// StandKit
+				1,	// Room Kit
+				2,	// PowerKit
+				3,	// ElectKit
+				4,	// AnalgKit
+				5,	// Jazz Kit
+				6,	// BrushKit
+				7,	// OrcheKit
+				9,	// SFX Set
+				8,	// C/M Kit
+			],
+		}[kind];
+
+		const drumNoteNamesRange = memMap[`drumNoteNames${kind}`];
+		console.assert(isValidRange(drumNoteNamesRange));
+		const drumNoteNames = splitArrayByN(allBytes.slice(...drumNoteNamesRange), 12).map((e) => String.fromCharCode(...e));
+
+		const drumNoteNameAddrsRange = memMap[`drumNoteNameAddrs${kind}`];
+		const drumNoteNameAddrs = splitArrayByN(allBytes.slice(...drumNoteNameAddrsRange), 4).map((e) => makeValue4ByteBE(e));
+		console.assert(drumNoteNameAddrs.length === tableIndexToDrumSetNos.length - 1);
+
+		// For StandKit
+		const drumSetStand = drumSets[tableIndexToDrumSetNos[0]];
+		for (const key of Object.keys(drumSetStand.notes)) {
+			if (!drumSetStand.notes[key].name) {
+				const offset = {XG: 13, TG300B: 25}[kind];
+				drumSetStand.notes[key].name = drumNoteNames[Number(key) - offset];
+			}
+		}
+
+		// For the other drum sets
+		drumNoteNameAddrs.forEach((addr, i) => {
+			const drumSet = drumSets[tableIndexToDrumSetNos[i + 1]];
+			const tableNoteNameIndices = allBytes.slice(addr, addr + 100);
+			for (const key of Object.keys(drumSet.notes)) {
+				if (!drumSet.notes[key].name) {
+					const offset = {XG: 13, TG300B: 25}[kind];
+					const index = Number(key) - offset;
+					let name = drumNoteNamesOthers[tableNoteNameIndices[index]];
+					if (name === '\x18'.repeat(12)) {
+						name = '-'.repeat(12);
+					}
+					verifyData(/^[\x20-\x7f]*$/u.test(name));
+					drumSet.notes[key].name = name ?? drumNoteNames[index];
+				}
+			}
+		});
+	}
+
+	// For DOC kit
+	if (props.additionalMaps.includes('DOC')) {
+		console.assert(isValidRange(memMap.drumNoteNameIndicesDOC));
+		const tableNoteNameIndices = allBytes.slice(...memMap.drumNoteNameIndicesDOC);
+
+		const drumSetDoc = drumSets[drumSets.length - 1];
+		for (const key of Object.keys(drumSetDoc.notes)) {
+			if (!drumSetDoc.notes[key].name) {
+				let name = drumNoteNamesOthers[tableNoteNameIndices[Number(key) - 21]];
+				if (name === '\x18'.repeat(12)) {
+					name = '-'.repeat(12);
+				}
+				drumSetDoc.notes[key].name = name;
+			}
+		}
 	}
 }
 
@@ -355,6 +714,39 @@ function makeToneMaps(tableToneMap, json, kind) {
 			},
 		};
 	}
+}
+
+function makeDrumMaps(tableDrums, json, kind) {
+	console.assert(tableDrums?.length && Array.isArray(json?.drumSets));
+
+	const drumSetProgs = json.drumSets.map((drumSet) => tableDrums.indexOf(drumSet.drumSetNo));
+
+	const bankM = {
+		XG:       127,
+		XGBasic:  127,
+		XGNative: 127,
+		SFX:      126,
+		TG300B:     0,
+	}[kind];
+
+	const drumMaps = [];
+	for (let prog = 0; prog < 128; prog++) {
+		if (!drumSetProgs.includes(prog)) {
+			continue;
+		}
+		const drumSetNo = tableDrums[prog];
+		verifyData(0 <= drumSetNo && drumSetNo < json.drumSets.length);
+		const drumProg = {
+			bankM, prog,
+			drumSetNo,
+			drumSetRef: {
+				$ref: `#/drumSets/${drumSetNo}`,
+			},
+		};
+		drumMaps.push(drumProg);
+	}
+
+	return drumMaps;
 }
 
 function makeTableOfToneMap(allBytes, memMap, json, addrSize) {
