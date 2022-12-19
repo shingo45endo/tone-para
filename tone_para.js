@@ -787,7 +787,7 @@ try {
 				const fileNames = fs.readdirSync(dir).filter((e) => pattern.test(path.parse(e).name));
 
 				(async () => {
-					const files = await Promise.all(fileNames.map(async (fileName) => await util.promisify(fs.readFile)(path.join(dir, fileName))));
+					const files = await Promise.all(fileNames.map((fileName) => util.promisify(fs.readFile)(path.join(dir, fileName))));
 					const bin = midToBinForSC(files);
 					fs.writeFileSync(`${argv.mode}.bin`, bin);
 				})();
