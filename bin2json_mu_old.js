@@ -1,4 +1,4 @@
-import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue4ByteBE} from './bin2json_common.js';
+import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue3ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 import {waveNamesMU} from './mu_waves.js';
 
 function convertVoicePacketForMU90AndMU100(bytes) {
@@ -185,6 +185,13 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		convertVoicePacket: convertVoicePacketForMU90AndMU100,
 		addDrumSetNames: addDrumSetNamesForMU90AndMU100,
 		addDrumNoteNames: addDrumNoteNamesForMU90AndMU100,
+		parseWaveBytes: (waveBytes) => ({
+			bytes: [...waveBytes],
+			low: null,
+			high: waveBytes[3],
+			addr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+		}),
+		wavePacketSize: 16,
 		voicePacketSize: 70,
 		drumParamPacketSize: 42,
 		addrSize: 4,
@@ -248,6 +255,13 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		convertVoicePacket: convertVoicePacketForMU90AndMU100,
 		addDrumSetNames: addDrumSetNamesForMU90AndMU100,
 		addDrumNoteNames: addDrumNoteNamesForMU90AndMU100,
+		parseWaveBytes: (waveBytes) => ({
+			bytes: [...waveBytes],
+			low: null,
+			high: waveBytes[3],
+			addr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+		}),
+		wavePacketSize: 16,
 		voicePacketSize: 70,
 		drumParamPacketSize: 42,
 		addrSize: 2,
@@ -299,6 +313,13 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		convertVoicePacket: convertVoicePacketForMU80,
 		addDrumSetNames: addDrumSetNamesForMU80OrLater,
 		addDrumNoteNames: addDrumNoteNamesForMU80OrLater,
+		parseWaveBytes: (waveBytes) => ({
+			bytes: [...waveBytes],
+			low: null,
+			high: (waveBytes[13] !== 0xff) ? waveBytes[13] : 127,
+			addr: makeValue3ByteBE(waveBytes.slice(8, 11)) & 0x0fffff,
+		}),
+		wavePacketSize: 14,
 		voicePacketSize: 68,
 		drumParamPacketSize: 30,
 		addrSize: 2,
@@ -314,6 +335,13 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		},
 		addDrumSetNames: addDrumSetNamesForMU80OrLater,
 		addDrumNoteNames: addDrumNoteNamesForMU80OrLater,
+		parseWaveBytes: (waveBytes) => ({
+			bytes: [...waveBytes],
+			low: waveBytes[14],
+			high: (waveBytes[15] !== 0xff) ? waveBytes[15] : 127,
+			addr: makeValue3ByteBE(waveBytes.slice(0, 3)) & 0x0fffff,
+		}),
+		wavePacketSize: 16,
 		voicePacketSize: 80,
 		drumParamPacketSize: 30,
 		addrSize: 2,
@@ -324,10 +352,13 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		console.assert(allBytes?.length && memMap);
 
 		const json = {
-			waves: waveNamesMU.map((name, waveNo) => ({waveNo, name})),
+			waves: null,
 			tones: null,
 			drumSets: null,
 		};
+
+		// Waves
+		json.waves = makeWaves(allBytes, memMap, props);
 
 		// Tones
 		console.assert(isValidRange(memMap.tones));
@@ -362,6 +393,45 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		return json;
 	};
 });
+
+function makeWaves(allBytes, memMap, props) {
+	console.assert(allBytes?.length && memMap && props);
+
+	console.assert(isValidRange(memMap.waves));
+	const wavesPackets = splitArrayByN(allBytes.slice(...memMap.waves), props.wavePacketSize);
+
+	console.assert(isValidRange(memMap.tableWaveAddrs));
+	const tableWaveAddrs = splitArrayByN(allBytes.slice(...memMap.tableWaveAddrs), 2).map((e) => makeValue2ByteBE(e));
+	const tableWaves = tableWaveAddrs.map((addr) => (addr - tableWaveAddrs[0]) / props.wavePacketSize);
+	console.assert(tableWaves.every((e) => Number.isInteger(e)));
+
+	const waves = [];
+	for (let waveNo = 0; waveNo < tableWaves.length - 1; waveNo++) {
+		const indexBegin = tableWaves[waveNo];
+		const indexEnd   = tableWaves[waveNo + 1];
+		verifyData(indexBegin < wavesPackets.length);
+		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map(props.parseWaveBytes);
+		sampleSlots.forEach((sampleSlot, i) => {
+			if (!Number.isInteger(sampleSlot.low)) {
+				sampleSlot.low = (i === 0) ? 0 : sampleSlots[i - 1].high + 1;
+			}
+			verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
+			verifyData(0 <= sampleSlot.high && sampleSlot.high < 128);
+			verifyData(sampleSlot.low <= sampleSlot.high);
+		});
+		verifyData(sampleSlots[0].low === 0);
+		verifyData(sampleSlots[sampleSlots.length - 1].high === 127);
+
+		const wave = {
+			waveNo,
+			name: waveNamesMU[waveNo] ?? `(Wave #${waveNo})`,
+			sampleSlots,
+		};
+		waves.push(wave);
+	}
+
+	return waves;
+}
 
 function makeTones(bytes, props, json) {
 	console.assert(bytes?.length && props && Array.isArray(json?.waves));

@@ -63,13 +63,19 @@ function makeWaves(allBytes, memMap) {
 		const indexEnd = tableWaves[waveNo + 1] ?? wavesPackets.length;
 		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes, i, a) => {
 			const sampleSlot = {
-				low:  (i > 0) ? a[i - 1][3] : 0,
+				low:  (i > 0) ? a[i - 1][3] + 1 : 0,
 				high: waveBytes[3],
-				sampleAddr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+				addr: makeValue3ByteBE(waveBytes.slice(13, 16)),
 				bytes: [...waveBytes],
 			};
+
+			verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
+			verifyData(0 <= sampleSlot.high && sampleSlot.high < 128);
+			verifyData(sampleSlot.low <= sampleSlot.high);
 			return sampleSlot;
 		});
+		verifyData(sampleSlots[0].low === 0);
+		verifyData(sampleSlots[sampleSlots.length - 1].high === 127);
 
 		const wave = {
 			waveNo,

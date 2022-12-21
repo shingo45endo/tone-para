@@ -64,9 +64,12 @@ function makeWaves(allBytes, memMap) {
 		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes) => {
 			const sampleSlot = {
 				low:  waveBytes[10],
-				high: waveBytes[11],
+				high: (waveBytes[11] < 128) ? waveBytes[11] : 127,
 				bytes: [...waveBytes],
 			};
+			verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
+			verifyData(0 <= sampleSlot.high && sampleSlot.high < 128);
+			verifyData(sampleSlot.low <= sampleSlot.high);
 			return sampleSlot;
 		});
 
@@ -134,7 +137,7 @@ function makeDrumSets(allBytes, memMap) {
 
 	console.assert(isValidRange(memMap.tableDrumNoteAddrs));
 	const tableDrumNoteAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumNoteAddrs), 256).map((bytes) => splitArrayByN(bytes, 2).map((e) => makeValue2ByteBE(e)));
-	const drumParamIndices = tableDrumNoteAddrs.map((addrs) => addrs.map((addr) => (addr !== 0x00) ? (addr - 0x3078) / 28 : -1));
+	const drumParamIndices = tableDrumNoteAddrs.map((addrs) => addrs.map((addr) => (addr !== 0x0000) ? (addr - 0x3078) / 28 : -1));
 
 	console.assert(isValidRange(memMap.drumSetNames));
 	const drumSetNames = splitArrayByN(allBytes.slice(...memMap.drumSetNames), 8).map((e) => String.fromCharCode(...e));

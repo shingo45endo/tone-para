@@ -490,6 +490,8 @@ try {
 					tableTonesXGBasic3:      [0x0cb498, 0x0cb518],	// Unknown table
 					tableTonesTG300B:        [0x0cb518, 0x0cb598],
 					tones:                   [0x0cb710, 0x0f692e],
+					waves:                   [0x0f692e, 0x0fccde],
+					tableWaveAddrs:          [0x0fccde, 0x0fcf2a],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -514,6 +516,8 @@ try {
 					tableTonesMsb:           [0x09bade, 0x09bb5e],
 					tableTonesTG300B:        [0x09bb5e, 0x09bbde],
 					tones:                   [0x09bc8e, 0x0b36cc],
+					waves:                   [0x0b36cc, 0x0b9a7c],
+					tableWaveAddrs:          [0x0b9a7c, 0x0b9cc8],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
@@ -522,6 +526,8 @@ try {
 		case 'mu80':
 			{
 				const json = binToJsonForMU80(bytes, {
+					waves:                   [0x000100, 0x0047ee],
+					tableWaveAddrs:          [0x0047ee, 0x0049de],
 					drumParams:              [0x0049de, 0x006e32],
 					tableDrumNotes:          [0x006e32, 0x008432],
 					tableDrumsTG300B:        [0x008432, 0x0084b2],
@@ -566,6 +572,8 @@ try {
 					tableTonesMsb:           [0x06c706, 0x06c786],
 					drumParams:              [0x06c788, 0x06f0e6],
 					tableDrumNotes:          [0x06f0e6, 0x0707e6],
+					waves:                   [0x0707e6, 0x074f36],
+					tableWaveAddrs:          [0x074f36, 0x075124],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
