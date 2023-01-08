@@ -17,6 +17,7 @@ import {binToJsonForTG300} from './bin2json_tg300.js';
 import {binToJsonForTG100} from './bin2json_tg100.js';
 import {binToJsonForQY2x} from './bin2json_qy2x.js';
 import {binToJsonForNS5R} from './bin2json_ns5r.js';
+import {binToJsonForX5DR} from './bin2json_x5dr.js';
 import {midToJsonForAG10} from './mid2json_ag10.js';
 import {binToJsonForGMega} from './bin2json_gmega.js';
 import {binToJsonForGMegaLx} from './bin2json_gmegalx.js';
@@ -39,6 +40,7 @@ const argv = yargs.
 			'tg100',
 			'mu5', 'qy22', 'qy20',
 			'ns5r',
+			'x5dr', '05rw',
 			'ag-10',
 			'gmega',
 			'gmega-lx',
@@ -710,11 +712,54 @@ try {
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 
 				Object.entries({
-					'2000_Fever.mid': [0x000008, 0x011350],
-					'MissionMan.mid': [0x011350, 0x01ddec],
-				}).forEach((e) => {
-					const [name, ranges] = e;
-					fs.writeFileSync(name, files.DEMO.slice(...ranges));
+					'NS5R_2000Fever.mid':  [0x000008, 0x011350],
+					'NS5R_MissionMan.mid': [0x011350, 0x01ddec],
+				}).forEach(([name, region]) => {
+					fs.writeFileSync(name, files.DEMO.slice(...region));
+				});
+			}
+			break;
+
+		case 'x5dr':
+			{
+				const json = binToJsonForX5DR(bytes, {
+					tonesGM:     [0x038c00, 0x03e320],
+					combisB:     [0x0416b0, 0x044bd0],
+					tonesB:      [0x044bd0, 0x048be0],
+					combisA:     [0x049630, 0x04cb50],
+					tonesA:      [0x04cb50, 0x050b60],
+					drumSamples: [0x050bc0, 0x051e3a],
+					samples:     [0x051e3a, 0x05f02c],
+					waves:       [0x05f02c, 0x060b0c],
+//					drumSamples: [0x060b10, 0x061928],	// Not used
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+
+				Object.entries({
+					'X5DR_We\'veGotDreams.mid': [0x000000, 0x00becd],
+					'X5DR_AroundTheWorld.mid':  [0x00bf00, 0x01fec6],
+				}).forEach(([name, region]) => {
+					fs.writeFileSync(name, bytes.slice(...region));
+				});
+			}
+			break;
+
+		case '05rw':
+			{
+				const json = binToJsonForX5DR(bytes, {
+					tonesGM:     [0x01ba90, 0x0211b0],
+					combisA:     [0x024540, 0x027a60],
+					tonesA:      [0x027a60, 0x02ba70],
+					drumSamples: [0x02bae0, 0x02c8f8],
+					samples:     [0x02c8f8, 0x037782],
+					waves:       [0x037782, 0x038dc2],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+
+				Object.entries({
+					'05RW_MadRobot.mid': [0x000400, 0x008a6e],
+				}).forEach(([name, region]) => {
+					fs.writeFileSync(name, bytes.slice(...region));
 				});
 			}
 			break;
