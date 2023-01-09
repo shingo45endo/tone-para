@@ -25,7 +25,7 @@ export function binToJsonForX5DR(allBytes, memMap) {
 	for (const kind of ['A', 'B', 'GM']) {
 		const tonesRegion = memMap[`tones${kind}`];
 		if (tonesRegion) {
-			json[`tones${kind}`] = makeTones(allBytes.slice(...tonesRegion));
+			json[`tones${kind}`] = makeTones(allBytes.slice(...tonesRegion), kind);
 		}
 	}
 
@@ -34,6 +34,14 @@ export function binToJsonForX5DR(allBytes, memMap) {
 		const combisRegion = memMap[`combis${kind}`];
 		if (combisRegion) {
 			json[`combis${kind}`] = makeCombis(allBytes.slice(...combisRegion), kind);
+		}
+	}
+
+	// Drum Sets
+	for (const kind of ['A', 'B', 'GM']) {
+		const drumSetsRegion = memMap[`drumSets${kind}`];
+		if (drumSetsRegion) {
+			json[`drumSets${kind}`] = makeDrumSets(allBytes.slice(...drumSetsRegion), json, kind);
 		}
 	}
 
@@ -115,15 +123,15 @@ function makeWaves(bytes, json) {
 	return waves;
 }
 
-function makeTones(bytes) {
+function makeTones(bytes, kind) {
 	console.assert(bytes?.length);
 
 	const tones = [];
 	const tonePackets = splitArrayByN(bytes, 164);
 	tonePackets.forEach((toneBytes, toneNo) => {
 		const commonBytes = toneBytes.slice(0, 40);
-		const kind = commonBytes[10];
-		const voiceNum = (kind === 0x01) ? 2 : 1;
+		const mode = commonBytes[10];
+		const voiceNum = (mode === 0x01) ? 2 : 1;
 		const voices = [];
 		for (let i = 0; i < voiceNum; i++) {
 			const voice = {
@@ -132,7 +140,7 @@ function makeTones(bytes) {
 			};
 
 			const no = makeValue2ByteLE(commonBytes.slice(12 + i * 3, 12 + i * 3 + 2));
-			switch (kind) {
+			switch (mode) {
 			case 0:	// Single Prog
 			case 1:	// Double Prog
 				Object.assign(voice, {
@@ -144,12 +152,15 @@ function makeTones(bytes) {
 				break;
 
 			case 2:	// Drum
-				Object.assign(voice, {
-					drumSetNo: no,
-//					drumSetRef: {
-//						$ref: `#/drumSets/${no}`,
-//					},
-				});
+				{
+					const drumSetNo = no % 8;
+					Object.assign(voice, {
+						drumSetNo,
+						drumSetRef: {
+							$ref: `#/drumSets${kind}/${drumSetNo}`,
+						},
+					});
+				}
 				break;
 
 			default:
@@ -210,4 +221,53 @@ function makeCombis(bytes, kind) {
 	});
 
 	return combis;
+}
+
+function makeDrumSets(bytes, json, kind) {
+	console.assert(bytes?.length);
+
+	const tones = json[`tones${kind}`];
+	console.assert(Array.isArray(tones));
+
+	const drumSets = [];
+	const drumSetPackets = splitArrayByN(bytes, 1320);
+	drumSetPackets.forEach((drumSetBytes, drumSetNo) => {
+		const drumNoteBytes = splitArrayByN(drumSetBytes, 22);
+		const drumParams = drumNoteBytes.map((bytes) => ({key: bytes[2], drumSampleNo: makeValue2ByteLE(bytes.slice(0, 2)) - 1, bytes}));
+
+		const notes = {};
+		for (let noteNo = 0; noteNo < 128; noteNo++) {
+			const drumParam = drumParams.find((e) => e.key === noteNo);
+			if (!drumParam) {
+				continue;
+			}
+			verifyData(drumParams.filter((e) => e.key === noteNo).length === 1);
+
+			const {drumSampleNo, bytes} = drumParam;
+			if (drumSampleNo < 0) {
+				continue;
+			}
+
+			const note = {
+				bytes,
+				drumSampleNo,
+				drumSampleRef: {
+					$ref: `#/drumSamples/${drumSampleNo}`,
+				},
+			};
+			notes[noteNo] = note;
+		}
+
+		const drumTone = tones.find((tone) => tone.voices[0].drumSetNo === drumSetNo);
+		verifyData(drumTone);
+
+		const drumSet = {
+			drumSetNo,
+			name: drumTone.name,
+			notes,
+		};
+		drumSets.push(drumSet);
+	});
+
+	return drumSets;
 }

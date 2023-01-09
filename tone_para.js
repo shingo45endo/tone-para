@@ -724,8 +724,11 @@ try {
 			{
 				const json = binToJsonForX5DR(bytes, {
 					tonesGM:     [0x038c00, 0x03e320],
+					drumSetsGM:  [0x03e320, 0x040c60],
+					drumSetsB:   [0x040c60, 0x0416b0],
 					combisB:     [0x0416b0, 0x044bd0],
 					tonesB:      [0x044bd0, 0x048be0],
+					drumSetsA:   [0x048be0, 0x049630],
 					combisA:     [0x049630, 0x04cb50],
 					tonesA:      [0x04cb50, 0x050b60],
 					drumSamples: [0x050bc0, 0x051e3a],
@@ -748,6 +751,8 @@ try {
 			{
 				const json = binToJsonForX5DR(bytes, {
 					tonesGM:     [0x01ba90, 0x0211b0],
+					drumSetsGM:  [0x0211b0, 0x023af0],
+					drumSetsA:   [0x023af0, 0x024540],
 					combisA:     [0x024540, 0x027a60],
 					tonesA:      [0x027a60, 0x02ba70],
 					drumSamples: [0x02bae0, 0x02c8f8],
