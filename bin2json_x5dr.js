@@ -58,6 +58,7 @@ function makeSamples(bytes) {
 	samplePackets.forEach((sampleBytes, sampleNo) => {
 		const sample = {
 			sampleNo,
+			bytes: [...sampleBytes],
 			addrBegin: makeValue3ByteLE(sampleBytes.slice(13, 16)),
 			addrLoop:  makeValue3ByteLE(sampleBytes.slice(16, 19)),
 			addrEnd:   makeValue3ByteLE(sampleBytes.slice(19, 22)),
@@ -80,6 +81,7 @@ function makeDrumSamples(bytes) {
 		const drumSample = {
 			drumSampleNo,
 			name: String.fromCharCode(...drumSampleBytes.slice(0, 10)),
+			bytes: [...drumSampleBytes],
 			addrBegin: makeValue3ByteLE(drumSampleBytes.slice(13, 16)),
 			addrLoop:  makeValue3ByteLE(drumSampleBytes.slice(16, 19)),
 			addrEnd:   makeValue3ByteLE(drumSampleBytes.slice(19, 22)),

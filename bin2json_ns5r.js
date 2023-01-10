@@ -50,6 +50,7 @@ function makeDrumSamples(bytes) {
 		const drumSample = {
 			drumSampleNo,
 			name: String.fromCharCode(...drumSampleBytes.slice(0, 10)),
+			bytes: [...drumSampleBytes],
 			addrBegin: makeValue3ByteBE(drumSampleBytes.slice(13, 16)),
 			addrLoop:  makeValue3ByteBE(drumSampleBytes.slice(16, 19)),
 			addrEnd:   makeValue3ByteBE(drumSampleBytes.slice(19, 22)),
