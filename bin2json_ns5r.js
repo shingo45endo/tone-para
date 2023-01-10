@@ -160,8 +160,8 @@ function makeDrumTones(bytes) {
 		const commonBytes = drumToneBytes.slice(0, 14);
 		const voiceBytes = drumToneBytes.slice(14);
 		const voice = {
-//			waveNo: makeValue2ByteBE(voiceBytes.slice(0, 2)),
 			bytes: [...voiceBytes],
+//			waveNo: makeValue2ByteBE(voiceBytes.slice(0, 2)),
 		};
 		const drumTone = {
 			drumToneNo,

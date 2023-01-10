@@ -350,9 +350,9 @@ function makeSamples(bytes) {
 		const addrLoop  = addrEnd - makeValue2ByteBE(sampleBytes.slice(3, 5));
 		const sample = {
 			sampleNo,
+			bytes: [...sampleBytes],
 			addrBegin, addrLoop, addrEnd,
 			format: addrAndFormat >> 20,
-			bytes: [...sampleBytes],
 		};
 		samples.push(sample);
 	});
@@ -377,9 +377,9 @@ function makeWaves(progBytes, memMap) {
 		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes) => {
 			const sampleNo = makeValue2ByteBE(waveBytes.slice(0, 2));
 			const sampleSlot = {
+				bytes: [...waveBytes],
 				low:  waveBytes[2],
 				high: waveBytes[3],
-				bytes: [...waveBytes],
 				sampleNo,
 				sampleRef: {
 					$ref: `#/samples/${sampleNo}`,
@@ -435,12 +435,12 @@ function makeTones(bytes, json) {
 			const voiceBytes = voicePackets[i];
 			const waveNo = ((voiceBytes[0] & 0x0f) << 4) | (voiceBytes[1] & 0x0f);
 			const voice = {
+				bytes: [...voiceBytes],
 				level:  commonBytes[1 + i],
 				pitch:  commonBytes[12 + i],
 				detune: commonBytes[3 + i],
 				pitchRateScaling:     commonBytes[10 + 4 * i],
 				pitchRateScalingNote: commonBytes[11 + 4 * i],
-				bytes: [...voiceBytes],
 				waveNo,
 				waveRef: {
 					$ref: `#/waves/${waveNo}`,

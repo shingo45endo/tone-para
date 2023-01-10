@@ -63,9 +63,9 @@ function makeWaves(allBytes, memMap) {
 
 		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map((waveBytes) => {
 			const sampleSlot = {
+				bytes: [...waveBytes],
 				low:  waveBytes[10],
 				high: (waveBytes[11] < 128) ? waveBytes[11] : 127,
-				bytes: [...waveBytes],
 			};
 			verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
 			verifyData(0 <= sampleSlot.high && sampleSlot.high < 128);

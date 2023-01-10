@@ -144,9 +144,9 @@ function makeWaves(bytes, json) {
 			}
 
 			const sampleSlot = {
+				bytes: [...sampleSlotBytes],
 				low: (sampleSlots.length > 0) ? sampleSlots[sampleSlots.length - 1].high + 1 : 0,
 				high: sampleSlotBytes[0],
-				bytes: [...sampleSlotBytes],
 				sampleNo,
 			};
 			if (sampleSlot.sampleNo >= 0) {

@@ -137,8 +137,8 @@ function makeTones(bytes, kind) {
 		const voices = [];
 		for (let i = 0; i < voiceNum; i++) {
 			const voice = {
-				octave: commonBytes[14 + i * 3],
 				bytes: [...toneBytes.slice(40 + i * 47, 87 + i * 47)],
+				octave: commonBytes[14 + i * 3],
 			};
 
 			const no = makeValue2ByteLE(commonBytes.slice(12 + i * 3, 12 + i * 3 + 2));
