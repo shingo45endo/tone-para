@@ -871,6 +871,8 @@ try {
 			}
 			break;
 
+		case 'sc-8850':
+		case 'jv-1010':
 		case 'ag-10':
 			console.warn('Not supported.');
 			break;
@@ -941,6 +943,8 @@ try {
 			break;
 
 		case 'sc-88pro':
+		case 'sc-88vl':
+		case 'sc-88':
 		case 'xp-10':
 		case 'sc-55mk2':
 		case 'sc-33':
@@ -949,6 +953,10 @@ try {
 		case 'sc-55_v10':
 		case 'cm-32l':
 		case 'tg300':
+		case 'tg100':
+		case 'mu5':
+		case 'qy22':
+		case 'qy20':
 		case 'ns5r':
 		case 'gmega':
 		case 'gmega-lx':
