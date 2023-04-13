@@ -45,6 +45,7 @@ const argv = yargs.
 			'gmega',
 			'gmega-lx',
 			'gz-70sp',
+			'sg01k',
 		],
 	}).
 	option('bin', {
@@ -871,6 +872,20 @@ try {
 			}
 			break;
 
+		case 'sg01k':	// TODO: WIP
+			{
+				Object.entries({
+					'SG01k_Mirage.mid':    [0x010016, 0x01b1f8],
+					'SG01k_Journey.mid':   [0x01b1f8, 0x026f43],
+					'SG01k_EbbTide.mid':   [0x026f43, 0x02f0f9],
+					'SG01k_Emergency.mid': [0x02f0f9, 0x03a0bc],
+					'SG01k_LeSoleil.mid':  [0x03a0bc, 0x03c77c],
+				}).forEach(([name, range]) => {
+					fs.writeFileSync(name, bytes.slice(...range));
+				});
+			}
+			break;
+
 		case 'sc-8850':
 		case 'jv-1010':
 		case 'ag-10':
@@ -961,6 +976,7 @@ try {
 		case 'gmega':
 		case 'gmega-lx':
 		case 'gz-70sp':
+		case 'sg01k':
 			console.warn('Not supported.');
 			break;
 
