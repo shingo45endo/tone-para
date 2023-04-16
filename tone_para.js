@@ -22,6 +22,7 @@ import {midToJsonForAG10} from './mid2json_ag10.js';
 import {binToJsonForGMega} from './bin2json_gmega.js';
 import {binToJsonForGMegaLx} from './bin2json_gmegalx.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
+import {binToJsonForSG01} from './bin2json_sg01.js';
 
 console.assert = assert;
 
@@ -872,8 +873,16 @@ try {
 			}
 			break;
 
-		case 'sg01k':	// TODO: WIP
+		case 'sg01k':
 			{
+				const json = binToJsonForSG01(bytes, {
+					tableToneAddrs: [0x040020, 0x041120],
+					tableDrumAddrs: [0x041120, 0x041220],
+					tableTestAddrs: [0x041220, 0x041320],
+					entries:        [0x041320, 0x0b33e0],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+
 				Object.entries({
 					'SG01k_Mirage.mid':    [0x010016, 0x01b1f8],
 					'SG01k_Journey.mid':   [0x01b1f8, 0x026f43],
