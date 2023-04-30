@@ -231,9 +231,9 @@ function makeDrumMaps(allBytes, memMap, json) {
 	}, {});
 
 	const drumMaps = [];
-	for (const [prog, drumSetNo] of Object.entries(drumSetProgs)) {
+	for (const [progStr, drumSetNo] of Object.entries(drumSetProgs)) {
 		const drumProg = {
-			prog,
+			prog: Number(progStr),
 			drumSetNo,
 			drumSetRef: {
 				$ref: `#/drumSets/${drumSetNo}`,
