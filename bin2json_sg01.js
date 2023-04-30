@@ -1,4 +1,4 @@
-import {makeValue2ByteLE, removePrivateProp, addNamesFromRefs, splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
+import {makeValue2ByteLE, makeValue4ByteLE, removePrivateProp, addNamesFromRefs, splitArrayByN, isValidRange, verifyData} from './bin2json_common.js';
 
 export function binToJsonForSG01(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -37,7 +37,7 @@ function makeAll(allBytes, memMap) {
 		switch (kind) {
 		case 1:	// Program
 			entries[addr] = {
-				bytes, kind, addr,
+				bytes, kind, _addr: addr,
 				keyGroupAddr: makeValue2ByteLE(bytes.slice(1, 3)),
 				name: decodeAkaiStr(bytes.slice(3, 15)),
 				numKeyGroups: bytes[42],
@@ -48,7 +48,7 @@ function makeAll(allBytes, memMap) {
 			{
 				const zonePackets = splitArrayByN(bytes.slice(34, 130), 24);
 				entries[addr] = {
-					bytes, kind, addr,
+					bytes, kind, _addr: addr,
 					nextAddr: makeValue2ByteLE(bytes.slice(1, 3)),
 					zones: (new Array(4)).fill().map((_, i) => ({
 						bytes: zonePackets[i],
@@ -60,13 +60,29 @@ function makeAll(allBytes, memMap) {
 			break;
 
 		case 3:	// Sample
-			entries[addr] = {
-				bytes, kind, addr,
-				sampleNo,
-				name: decodeAkaiStr(bytes.slice(3, 15)),
-				partnerAddr: makeValue2ByteLE(bytes.slice(136, 138)),
-			};
-			sampleNo++;
+			{
+				const view = new DataView(bytes.buffer);
+				entries[addr] = {
+					bytes, kind, _addr: addr,
+					sampleNo,
+					key:   bytes[2],
+					name:  decodeAkaiStr(bytes.slice(3, 15)),
+					pitch: view.getInt16(20, true) / 256,
+					addr:  makeValue4ByteLE(bytes.slice(22, 26)),
+					len:   makeValue4ByteLE(bytes.slice(26, 30)),
+					begin: makeValue4ByteLE(bytes.slice(30, 34)),
+					end:   makeValue4ByteLE(bytes.slice(34, 38)),
+					loops: (new Array(4)).fill().map((_, i) => ({
+						loopAt: view.getUint32(38 + 12 * i, true),
+						length: view.getUint32(44 + 12 * i, true) + view.getUint16(42 + 12 * i, true) / 65536,
+						num:    view.getUint16(48 + 12 * i, true),
+					})),
+					partnerAddr: makeValue2ByteLE(bytes.slice(136, 138)),
+					sampleRate:  makeValue2ByteLE(bytes.slice(138, 140)),
+					holdTune: bytes[140],
+				};
+				sampleNo++;
+			}
 			break;
 
 		default:
@@ -85,7 +101,7 @@ function makeAll(allBytes, memMap) {
 			waveRef: {
 				$ref: `#/waves/${no}`,
 			},
-			_addr: programEntry.addr,
+			_addr: programEntry._addr,
 		};
 		tones.push(tone);
 
@@ -108,6 +124,7 @@ function makeAll(allBytes, memMap) {
 					verifyData(sample);
 					return {
 						bytes: zone.bytes,
+						sampleNo: sample.sampleNo,
 						sampleRef: {
 							$ref: `#/samples/${sample.sampleNo}`,
 							name: sample.name,
@@ -131,9 +148,14 @@ function makeAll(allBytes, memMap) {
 	const samples = [];
 	Object.values(entries).filter((entry) => entry.kind === 3).forEach((sampleEntry) => {
 		const sample = {
-			sampleNo: sampleEntry.sampleNo,
-			name: sampleEntry.name,
-			bytes: sampleEntry.bytes,
+			sampleNo:   sampleEntry.sampleNo,
+			name:       sampleEntry.name,
+			bytes:      sampleEntry.bytes,
+			key:        sampleEntry.key,
+			pitch:      sampleEntry.pitch,
+			sampleRate: sampleEntry.sampleRate,
+			addrBegin:  sampleEntry.addr + sampleEntry.begin,
+			addrEnd:    sampleEntry.addr + sampleEntry.end,
 		};
 		samples.push(sample);
 	});
