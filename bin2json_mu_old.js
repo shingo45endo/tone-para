@@ -397,37 +397,46 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 function makeWaves(allBytes, memMap, props) {
 	console.assert(allBytes?.length && memMap && props);
 
-	console.assert(isValidRange(memMap.waves));
-	const wavesPackets = splitArrayByN(allBytes.slice(...memMap.waves), props.wavePacketSize);
-
-	console.assert(isValidRange(memMap.tableWaveAddrs));
-	const tableWaveAddrs = splitArrayByN(allBytes.slice(...memMap.tableWaveAddrs), 2).map((e) => makeValue2ByteBE(e));
-	const tableWaves = tableWaveAddrs.map((addr) => (addr - tableWaveAddrs[0]) / props.wavePacketSize);
-	console.assert(tableWaves.every((e) => Number.isInteger(e)));
+	const waveRanges = Object.keys(memMap).filter((key) => key.startsWith('wave')).map((key) => memMap[key]);
+	console.assert(waveRanges.length > 0);
+	const tableWaveAddrsRanges = Object.keys(memMap).filter((key) => key.startsWith('tableWaveAddrs')).map((key) => memMap[key]);
+	console.assert(tableWaveAddrsRanges.length > 0);
+	console.assert(waveRanges.length === tableWaveAddrsRanges.length);
 
 	const waves = [];
-	for (let waveNo = 0; waveNo < tableWaves.length - 1; waveNo++) {
-		const indexBegin = tableWaves[waveNo];
-		const indexEnd   = tableWaves[waveNo + 1];
-		verifyData(indexBegin < wavesPackets.length);
-		const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map(props.parseWaveBytes);
-		sampleSlots.forEach((sampleSlot, i) => {
-			if (!Number.isInteger(sampleSlot.low)) {
-				sampleSlot.low = (i === 0) ? 0 : sampleSlots[i - 1].high + 1;
-			}
-			verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
-			verifyData(0 <= sampleSlot.high && sampleSlot.high < 128);
-			verifyData(sampleSlot.low <= sampleSlot.high);
-		});
-		verifyData(sampleSlots[0].low === 0);
-		verifyData(sampleSlots[sampleSlots.length - 1].high === 127);
+	let waveNo = 0;
+	for (const [waveRange, tableWaveAddrsRange] of (new Array(waveRanges.length)).fill().map((_, i) => [waveRanges[i], tableWaveAddrsRanges[i]])) {
+		const wavesPackets = splitArrayByN(allBytes.slice(...waveRange), props.wavePacketSize);
 
-		const wave = {
-			waveNo,
-			name: waveNamesMU[waveNo] ?? `(Wave #${waveNo})`,
-			sampleSlots,
-		};
-		waves.push(wave);
+		const tableWaveAddrs = splitArrayByN(allBytes.slice(...tableWaveAddrsRange), 2).map((e) => makeValue2ByteBE(e));
+		const tableWaves = tableWaveAddrs.map((addr) => (addr - tableWaveAddrs[0]) / props.wavePacketSize);
+		console.assert(tableWaves.every((e) => Number.isInteger(e)));
+
+		for (let i = 0; i < tableWaves.length - 1; i++) {
+			const indexBegin = tableWaves[i];
+			const indexEnd   = tableWaves[i + 1];
+			verifyData(indexBegin < wavesPackets.length);
+			const sampleSlots = wavesPackets.slice(indexBegin, indexEnd).map(props.parseWaveBytes);
+			sampleSlots.forEach((sampleSlot, i) => {
+				if (!Number.isInteger(sampleSlot.low)) {
+					sampleSlot.low = (i === 0) ? 0 : sampleSlots[i - 1].high + 1;
+				}
+				verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
+				verifyData(0 <= sampleSlot.high && sampleSlot.high < 128);
+				verifyData(sampleSlot.low <= sampleSlot.high);
+			});
+			verifyData(sampleSlots[0].low === 0);
+			verifyData(sampleSlots[sampleSlots.length - 1].high === 127);
+
+			const wave = {
+				waveNo,
+				name: waveNamesMU[waveNo] ?? `(Wave #${waveNo})`,
+				sampleSlots,
+			};
+			waves.push(wave);
+
+			waveNo++;
+		}
 	}
 
 	return waves;

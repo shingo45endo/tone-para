@@ -546,8 +546,12 @@ try {
 					tableTonesXGBasic3:      [0x0cb498, 0x0cb518],	// Unknown table
 					tableTonesTG300B:        [0x0cb518, 0x0cb598],
 					tones:                   [0x0cb710, 0x0f692e],
-					waves:                   [0x0f692e, 0x0fccde],
-					tableWaveAddrs:          [0x0fccde, 0x0fcf2a],
+					waves1:                  [0x0f692e, 0x0fccde],
+					tableWaveAddrs1:         [0x0fccde, 0x0fcf2a],
+					waves2:                  [0x0fcf30, 0x0fdf80],
+					tableWaveAddrs2:         [0x0fdf80, 0x0fdfc4],
+					waves3:                  [0x0fdfc4, 0x100c34],
+					tableWaveAddrs3:         [0x100c34, 0x100d1c],
 				});
 				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
 			}
