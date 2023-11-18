@@ -91,7 +91,7 @@ function makeWaves(allBytes, wavesRanges) {
 			console.assert(sample.low <= sample.high);
 			sampleSlots.push(sample);
 
-			if (sample.high === 0x7f) {
+			if (sample.high >= 0x7f) {
 				break;
 			}
 		}
