@@ -33,7 +33,7 @@ const argv = yargs.
 		choices: [
 			'sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010',
 			'sc-88pro', 'sc-88vl', 'sc-88',
-			'xp-10', 'sc-55mk2', 'sc-33', 'sc-55_v20', 'sc-55_v12', 'sc-55_v10',
+			'pma-5', 'xp-10', 'sc-55mk2', 'sc-33', 'sc-55_v20', 'sc-55_v12', 'sc-55_v10',
 			'cm-32l',
 			'mu2000', 'mu1000', 'mu128',
 			'mu100', 'mu90', 'mu80', 'mu50',
@@ -195,6 +195,28 @@ try {
 			}
 			break;
 
+		case 'pma-5':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "Ancestral"
+						[0x020000, 0x02a638],	// "Prologue" - "BrshT1"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "AT Piano" - "wah_gt"
+						[0x02bd00, 0x02d86c],	// "GtScrape2" - "BRT2H"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x02ef40],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03c940],
+				});
+				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+			}
+			break;
 		case 'xp-10':
 			{
 				const json = binToJsonForSC55(bytes, {
@@ -973,6 +995,7 @@ try {
 		case 'sc-88pro':
 		case 'sc-88vl':
 		case 'sc-88':
+		case 'pma-5':
 		case 'xp-10':
 		case 'sc-55mk2':
 		case 'sc-33':
