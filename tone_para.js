@@ -1,9 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import util from 'node:util';
+import process from 'node:process';
 import assert from 'node:assert';
-
-import yargs from 'yargs';
 
 import {midToBinForSC} from './mid2bin_sc.js';
 import {midToBinForMU} from './mid2bin_mu.js';
@@ -26,50 +25,24 @@ import {binToJsonForSG01} from './bin2json_sg01.js';
 
 console.assert = assert;
 
-const argv = yargs.
-	strict().
-	help().
-	option('mode', {
-		choices: [
-			'sc-8850', 'sc-8820', 'sc-d70', 'sk-500', 'jv-1010',
-			'sc-88pro', 'sc-88vl', 'sc-88',
-			'pma-5', 'xp-10', 'sc-55mk2', 'sc-33', 'sc-55_v20', 'sc-55_v12', 'sc-55_v10',
-			'cm-32l',
-			'mu2000', 'mu1000', 'mu128',
-			'mu100', 'mu90', 'mu80', 'mu50',
-			'tg300',
-			'tg100',
-			'mu5', 'qy22', 'qy20',
-			'ns5r',
-			'x5dr', '05rw',
-			'ag-10',
-			'gmega',
-			'gmega-lx',
-			'gz-70sp',
-			'sg01k',
-		],
-	}).
-	option('bin', {
-		type: 'boolean',
-	}).
-	demandOption('mode').
-	argv;
+const {values: options, positionals} = util.parseArgs({
+	args: process?.args ?? globalThis.Deno?.args,
+	allowPositionals: true,
+	options: {
+		mode: {type: 'string'},
+		bin: {type: 'boolean'}
+	},
+});
 
-const filePaths = argv._.map((filePath) => path.isAbsolute(filePath) ? filePath : path.resolve('.', filePath));
+const filePaths = positionals.map((filePath) => path.isAbsolute(filePath) ? filePath : path.resolve('.', filePath));
 const filePath = filePaths[0];
 
 try {
-	if (argv.bin) {
-		let buf;
-		try {
-			buf = fs.readFileSync(filePath);
-		} catch (e) {
-			buf = fs.readFileSync(`${argv.mode}.bin`);
-		}
-		console.assert(buf);
+	if (options.bin) {
+		const buf = fs.readFileSync(filePath);
 		const bytes = new Uint8Array(buf);
 
-		switch (argv.mode) {
+		switch (options.mode) {
 		case 'sc-8820':
 			{
 				const json = binToJsonForSC8820(bytes, {
@@ -87,7 +60,7 @@ try {
 					combis:        [0x100c06, 0x1010b6],
 					drumNoteNames: [0x105d30, 0x13b930],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'sc-d70':
@@ -107,7 +80,7 @@ try {
 					combis:        [0x1012fe, 0x1017ae],
 					drumNoteNames: [0x106428, 0x13c028],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -142,7 +115,7 @@ try {
 					],
 					combis: [0x0c2dc0, 0x0c3018],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'sc-88vl':
@@ -166,7 +139,7 @@ try {
 						[0x070000, 0x074e36],	// "Brs Chh" - "FlyingMonstr"
 					],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'sc-88':
@@ -191,7 +164,7 @@ try {
 						[0x070000, 0x074f80],	// "Lite Tom 4" - "FlyingMonstr"
 					],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -214,7 +187,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03c940],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'xp-10':
@@ -236,7 +209,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03c940],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 					'XP-10_Power.mid':             [0x008000, 0x00fc87],
@@ -267,7 +240,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03adf8],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 /*
 				Object.entries({
 					'SC-55mkII_MoonlightPicnic.mid': [0x040000, 0x045fda],
@@ -299,7 +272,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03bb9c],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 /*
 				Object.entries({
 					'SC-33_WORMHole.mid': [0x009c8c, 0x00f67d],
@@ -328,7 +301,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03c028],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 /*
 				Object.entries({
 					'SC-55-v200_JazzLagoon.mid':  [0x009ad8, 0x00d70b],
@@ -358,7 +331,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03c028],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 					'SC-55-v121_JazzLagoon.mid':  [0x0088ac, 0x00d174],
@@ -389,7 +362,7 @@ try {
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03c028],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 //					'SC-55-v110_JazzLagoon.mid':  [0x0087b4, 0x00d07c],
@@ -413,7 +386,7 @@ try {
 					drumSet: [0x008580, 0x0086d4],
 					samples: [0x008100, 0x008500],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -455,7 +428,7 @@ try {
 					tableDrumSetNamesGM2Basic:  [0x29fd50, 0x29fdd0],
 					tableDrumSetNamesGM2Native: [0x29fdd0, 0x29fe50],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'mu1000':
@@ -496,7 +469,7 @@ try {
 					tableDrumSetNamesGM2Basic:  [0x1e3cc8, 0x1e3d48],
 					tableDrumSetNamesGM2Native: [0x1e3d48, 0x1e3dc8],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'mu128':
@@ -537,7 +510,7 @@ try {
 					tableDrumSetNamesGM2Basic:  [0x1775b0, 0x177630],
 					tableDrumSetNamesGM2Native: [0x177630, 0x1776b0],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -575,7 +548,7 @@ try {
 					waves3:                  [0x0fdfc4, 0x100c34],
 					tableWaveAddrs3:         [0x100c34, 0x100d1c],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -601,7 +574,7 @@ try {
 					waves:                   [0x0b36cc, 0x0b9a7c],
 					tableWaveAddrs:          [0x0b9a7c, 0x0b9cc8],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -628,7 +601,7 @@ try {
 					drumNoteNamesTG300B:     [0x066996, 0x066c96],	// Only StandKit
 					drumNoteNamesOthers:     [0x067213, 0x067bdf],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -657,7 +630,7 @@ try {
 					waves:                   [0x0707e6, 0x074f36],
 					tableWaveAddrs:          [0x074f36, 0x075124],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -678,7 +651,7 @@ try {
 					tones:              [0x010000, 0x01f0c0],
 					drumNoteNames:      [0x055147, 0x0574e7],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -709,7 +682,7 @@ try {
 					// PCM
 					samples: [0x000000, 0x001800],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -724,7 +697,7 @@ try {
 					tableDrumNotes: [0x01a864, 0x01b164],
 					tones:          [0x01b164, 0x01d164],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'qy22':
@@ -738,7 +711,7 @@ try {
 					drumSetNames:   [0x02748a, 0x0274da],
 					tableDrums:     [0x0274f5, 0x027575],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 		case 'qy20':
@@ -754,7 +727,7 @@ try {
 					tones:            [0x003600, 0x005600],
 					drumSetNames:     [0x0274a6, 0x0274ee],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -789,7 +762,7 @@ try {
 					tableDrumSets:  [0x0139da, 0x013a8a],
 					drumNoteParams: [0x013a8a, 0x01fede],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 					'NS5R_2000Fever.mid':  [0x000008, 0x011350],
@@ -816,7 +789,7 @@ try {
 					waves:       [0x05f02c, 0x060b0c],
 //					drumSamples: [0x060b10, 0x061928],	// Not used
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 					'X5DR_We\'veGotDreams.mid': [0x000000, 0x00becd],
@@ -839,7 +812,7 @@ try {
 					samples:     [0x02c8f8, 0x037782],
 					waves:       [0x037782, 0x038dc2],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 					'05RW_MadRobot.mid': [0x000400, 0x008a6e],
@@ -871,7 +844,7 @@ try {
 					toneParamsSP:     [0x040000, 0x041800],
 					drumToneParamsSP: [0x041800, 0x042800],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -883,7 +856,7 @@ try {
 					tableToneAddrs:  [0x018000, 0x018140],
 					drumToneParams:  [0x01e46a, 0x01efea],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -895,7 +868,7 @@ try {
 					samples:            [0x01388e, 0x015f2e],
 					tableSampleOffsets: [0x016092, 0x01f092],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
 
@@ -907,7 +880,7 @@ try {
 					tableTestAddrs: [0x041220, 0x041320],
 					entries:        [0x041320, 0x0b33e0],
 				});
-				fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 
 				Object.entries({
 					'SG01k_Mirage.mid':    [0x010016, 0x01b1f8],
@@ -928,12 +901,12 @@ try {
 			break;
 
 		default:
-			console.assert(false);
+			console.error(`Invalid mode: ${options.mode}`);
 			break;
 		}
 
 	} else {
-		switch (argv.mode) {
+		switch (options.mode) {
 		case 'sc-8850':
 		case 'sc-8820':
 		case 'sc-d70':
@@ -951,7 +924,7 @@ try {
 				(async () => {
 					const files = await Promise.all(fileNames.map((fileName) => util.promisify(fs.readFile)(path.join(dir, fileName))));
 					const bin = midToBinForSC(files);
-					fs.writeFileSync(`${argv.mode}.bin`, bin);
+					fs.writeFileSync(`${options.mode}.bin`, bin);
 				})();
 			}
 			break;
@@ -968,7 +941,7 @@ try {
 
 				view.setUint32(0, 0x4d546864);
 				const bin = midToBinForMU(bytes);
-				fs.writeFileSync(`${argv.mode}.bin`, bin);
+				fs.writeFileSync(`${options.mode}.bin`, bin);
 			}
 			break;
 
@@ -987,7 +960,7 @@ try {
 						return p;
 					}, {});
 					const json = midToJsonForAG10(files);
-					fs.writeFileSync(`${argv.mode}.json`, myStringify(json));
+					fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 				})();
 			}
 			break;
@@ -1017,7 +990,7 @@ try {
 			break;
 
 		default:
-			console.assert(false);
+			console.error(`Invalid mode: ${options.mode}`);
 			break;
 		}
 	}

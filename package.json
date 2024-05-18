@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "description": "",
   "engines": {
-    "node": ">=14"
+    "node": ">=18.3"
   },
   "type": "module",
   "scripts": {
@@ -19,9 +19,6 @@
     "url": "https://github.com/shingo45endo/tone-para/issues"
   },
   "homepage": "https://github.com/shingo45endo/tone-para#readme",
-  "dependencies": {
-    "yargs": "^13.3.0"
-  },
   "devDependencies": {
     "eslint": "^7.32.0"
   }
