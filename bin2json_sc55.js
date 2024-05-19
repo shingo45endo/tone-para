@@ -1,4 +1,4 @@
-import {splitArrayByN, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteBE} from './bin2json_common.js';
+import {splitArrayByN, addNamesFromRefs, isValidRange, verifyData, makeValue2ByteBE, makeValue3ByteBE} from './bin2json_common.js';
 
 export function binToJsonForSC55(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
@@ -53,7 +53,12 @@ function makeSamples(allBytes, samplesRanges) {
 			sampleNo,
 			bytes: [...sampleBytes],
 			key:   sampleBytes[11],
-			bank:  sampleBytes[10],
+			pitch: makeValue2ByteBE(sampleBytes.slice(12, 14)) - 1024,
+			addrBegin: makeValue3ByteBE(sampleBytes.slice(1, 4)),
+			attackEnd: makeValue2ByteBE(sampleBytes.slice(4, 6)),
+			sampleLen: makeValue2ByteBE(sampleBytes.slice(6, 8)),
+			loopLen:   makeValue2ByteBE(sampleBytes.slice(8, 10)),
+			loopMode:  sampleBytes[10],
 		};
 		samples.push(sample);
 	});
