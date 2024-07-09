@@ -375,6 +375,29 @@ try {
 			}
 			break;
 
+		case 'ra-90':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01a200],	// "Piano 1" - "Elec Piano 2"
+						[0x020000, 0x02a200],	// "Elec Piano 3" - "Open Hi Hat2"
+					],
+					wavesRanges: [
+						[0x01a200, 0x01cf00],	// "PIANO1" - "SLAP"
+						[0x02a200, 0x02adf4],	// "S_PUSH" - "Con_sym"
+					],
+					samplesRanges: [
+						[0x01cf00, 0x01ff00],
+						[0x02cf00, 0x02dd60],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03bb9c],
+				});
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
+			}
+			break;
+
 		case 'cm-32l':
 			{
 				const json = binToJsonForCM32L(bytes, {
@@ -975,6 +998,7 @@ try {
 		case 'sc-55_v20':
 		case 'sc-55_v12':
 		case 'sc-55_v10':
+		case 'ra-90':
 		case 'cm-32l':
 		case 'tg300':
 		case 'tg100':
