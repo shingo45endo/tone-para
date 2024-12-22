@@ -253,6 +253,35 @@ try {
 */
 			}
 			break;
+		case 'sd-35':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x010000, 0x01bd00],	// "Piano 1" - "High-Q"
+						[0x020000, 0x0236d8],	// "Slap" - "ConcertSnare"
+					],
+					wavesRanges: [
+						[0x01bd00, 0x01dec0],	// "AT Piano" - "S_PULL"
+						[0x02bd00, 0x02c5ac],	// "STICK" - "808CG"
+					],
+					samplesRanges: [
+						[0x01dec0, 0x020000],
+						[0x02dec0, 0x02df80],
+					],
+					tableTones: [0x030000, 0x038000],
+					tableDrums: [0x038000, 0x038080],
+					drumSets:   [0x038080, 0x03bb9c],
+				});
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
+/*
+				Object.entries({
+					'SD-35_Leya\'sSong.mid': [0x00cebc, 0x00ea6e],
+				}).forEach(([name, range]) => {
+					fs.writeFileSync(name, bytes.slice(...range));
+				});
+*/
+			}
+			break;
 		case 'sc-33':
 			{
 				const json = binToJsonForSC55(bytes, {
@@ -994,6 +1023,7 @@ try {
 		case 'pma-5':
 		case 'xp-10':
 		case 'sc-55mk2':
+		case 'sd-35':
 		case 'sc-33':
 		case 'sc-55_v20':
 		case 'sc-55_v12':
