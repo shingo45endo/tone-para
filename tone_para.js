@@ -30,7 +30,7 @@ const {values: options, positionals} = util.parseArgs({
 	allowPositionals: true,
 	options: {
 		mode: {type: 'string'},
-		bin: {type: 'boolean'}
+		bin: {type: 'boolean'},
 	},
 });
 
