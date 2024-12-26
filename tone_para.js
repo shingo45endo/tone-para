@@ -1036,6 +1036,8 @@ try {
 		case 'qy22':
 		case 'qy20':
 		case 'ns5r':
+		case 'x5dr':
+		case '05rw':
 		case 'gmega':
 		case 'gmega-lx':
 		case 'gz-70sp':
