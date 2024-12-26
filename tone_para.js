@@ -9,6 +9,7 @@ import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc8820.js';
 import {binToJsonForSC88Pro, binToJsonForSC88} from './bin2json_sc88pro.js';
 import {binToJsonForSC55} from './bin2json_sc55.js';
+import {binToJsonForUPcm, descrambleRomForUPcm} from './bin2json_upcm.js';
 import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
@@ -422,6 +423,17 @@ try {
 					tableTones: [0x030000, 0x038000],
 					tableDrums: [0x038000, 0x038080],
 					drumSets:   [0x038080, 0x03bb9c],
+				});
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
+			}
+			break;
+
+		case 'cm-32p':
+			{
+				const descrambledBytes = descrambleRomForUPcm(bytes);
+				const json = binToJsonForUPcm(descrambledBytes, {
+					tones:   [0x001000, 0x003800],
+					samples: [0x000100, 0x000790],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
@@ -1029,6 +1041,7 @@ try {
 		case 'sc-55_v12':
 		case 'sc-55_v10':
 		case 'ra-90':
+		case 'cm-32p':
 		case 'cm-32l':
 		case 'tg300':
 		case 'tg100':
