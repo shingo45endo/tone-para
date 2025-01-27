@@ -96,6 +96,7 @@ function makeSamples(allBytes, sampleRanges) {
 				key:   sampleBytes[6],
 				pitch: (new DataView((new Uint8Array(sampleBytes.slice(4, 6))).buffer)).getInt16(),
 //				pitch: (new DataView((new Uint8Array(sampleBytes.slice(14, 16))).buffer)).getInt16(),
+				bank:  sampleBytes[0],
 				addrBegin: makeValue3ByteBE(sampleBytes.slice(1, 4)),
 				addrLoop:  makeValue3ByteBE(sampleBytes.slice(7, 10)),
 				addrEnd:   makeValue3ByteBE(sampleBytes.slice(11, 14)),
