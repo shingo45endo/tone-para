@@ -36,11 +36,11 @@ const {values: options, positionals} = util.parseArgs({
 });
 
 const filePaths = positionals.map((filePath) => path.isAbsolute(filePath) ? filePath : path.resolve('.', filePath));
-const filePath = filePaths[0];
+const ctrlFilePath = filePaths[0];
 
 try {
 	if (options.bin) {
-		const buf = fs.readFileSync(filePath);
+		const buf = fs.readFileSync(ctrlFilePath);
 		const bytes = new Uint8Array(buf);
 
 		switch (options.mode) {
@@ -797,10 +797,10 @@ try {
 
 		case 'ns5r':
 			{
-				const {root, dir, name, ext} = path.parse(filePath);
+				const {root, dir, name, ext} = path.parse(ctrlFilePath);
 				const m = name.match(/^(X572)(.*)/ui);
 				if (!m) {
-					throw new Error(`Invalid file: ${filePath}`);
+					throw new Error(`Invalid file: ${ctrlFilePath}`);
 				}
 				const files = ['PROG', 'PCM', 'DEMO'].reduce((p, c) => {
 					if (c === m[2]) {
@@ -977,7 +977,7 @@ try {
 		case 'sk-500':
 		case 'jv-1010':
 			{
-				const {dir, name} = path.parse(filePath);
+				const {dir, name} = path.parse(ctrlFilePath);
 				const m = name.match(/^([^\d]*)(\d+)$/u);
 				if (!m) {
 					throw new Error(`Invalid file name: ${name}`);
@@ -997,10 +997,10 @@ try {
 		case 'mu1000':
 		case 'mu128':
 			{
-				const bytes = new Uint8Array(fs.readFileSync(filePath));
+				const bytes = new Uint8Array(fs.readFileSync(ctrlFilePath));
 				const view = new DataView(bytes.buffer);
 				if (view.getUint32(0) !== 0x4e5a656d) {
-					throw new Error(`Invalid file: ${filePath}`);
+					throw new Error(`Invalid file: ${ctrlFilePath}`);
 				}
 
 				view.setUint32(0, 0x4d546864);
@@ -1011,7 +1011,7 @@ try {
 
 		case 'ag-10':
 			{
-				const {dir} = path.parse(filePath);
+				const {dir} = path.parse(ctrlFilePath);
 				const fileNames = fs.readdirSync(dir).filter((e) => /^\d{3}.*?\.AG/ui.test(path.basename(e)));
 
 				(async () => {
