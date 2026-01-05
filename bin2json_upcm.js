@@ -62,7 +62,7 @@ function makeSamples(bytes) {
 	const samplePackets = splitArrayByN(bytes, 10);
 	samplePackets.forEach((sampleBytes, sampleNo) => {
 		const addr = makeValue3ByteLE(sampleBytes.slice(0, 3));
-		const addrBegin = addr & 0x3ffff;
+		const addrBegin = addr & 0x7ffff;
 		const sample = {
 			sampleNo,
 			bytes: [...sampleBytes],
