@@ -9,7 +9,7 @@ import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc8820.js';
 import {binToJsonForSC88Pro, binToJsonForSC88} from './bin2json_sc88pro.js';
 import {binToJsonForSC55} from './bin2json_sc55.js';
-import {binToJsonForUPcm, descrambleRomForUPcm} from './bin2json_upcm.js';
+import {binToJsonForUPcm} from './bin2json_upcm.js';
 import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
@@ -23,6 +23,7 @@ import {binToJsonForGMega} from './bin2json_gmega.js';
 import {binToJsonForGMegaLx} from './bin2json_gmegalx.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 import {binToJsonForSG01} from './bin2json_sg01.js';
+import {descrambleRomForUPcm} from './pcmdec_upcm.js';
 
 console.assert = assert;
 

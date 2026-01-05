@@ -1,3 +1,39 @@
+export function descrambleRomForUPcm(bytes) {
+	console.assert(bytes?.length && bytes.length % 0x80000 === 0);
+
+	const newBytes = new Array(bytes.length);
+
+	for (let addr = 0x00000; addr < bytes.length; addr++) {
+		const baseAddr = addr & ~0x7ffff;
+		const newAddr = baseAddr | descrambleAddress(addr & 0x7ffff);
+		newBytes[newAddr] = descrambleData(bytes[addr]);
+	}
+	console.assert(newBytes.every((e) => (e !== undefined)));
+
+	return new Uint8Array(newBytes);
+
+	function descrambleAddress(addr) {
+		const swapBits = [0, 4, 5, 6, 2, 1, 3, 11, 7, 10, 8, 12, 13, 9, 15, 16, 14, 17, 18];
+		let newAddr = 0x00000;
+		for (let i = 0; i < swapBits.length; i++) {
+			const bit = Number((addr & (1 << i)) !== 0);
+			newAddr |= bit << swapBits[i];
+		}
+		return newAddr;
+	}
+
+	function descrambleData(data) {
+		return  (Number((data & (1 << 6)) !== 0) << 0) |
+				(Number((data & (1 << 4)) !== 0) << 1) |
+				(Number((data & (1 << 0)) !== 0) << 2) |
+				(Number((data & (1 << 5)) !== 0) << 3) |
+				(Number((data & (1 << 3)) !== 0) << 4) |
+				(Number((data & (1 << 7)) !== 0) << 5) |
+				(Number((data & (1 << 2)) !== 0) << 6) |
+				(Number((data & (1 << 1)) !== 0) << 7);
+	}
+}
+
 export function decodePcmForUPcm(sample, pcmRomReader, sampleRate = 32000.0, loopSec = 1.0) {
 	const addrBegin = sample.addrBegin;
 	const loopBegin = sample.addrBegin + (sample.sampleLen - sample.loopLen);
