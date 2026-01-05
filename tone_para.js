@@ -9,7 +9,7 @@ import {midToBinForMU} from './mid2bin_mu.js';
 import {binToJsonForSC8820, binToJsonForSCD70} from './bin2json_sc8820.js';
 import {binToJsonForSC88Pro, binToJsonForSC88} from './bin2json_sc88pro.js';
 import {binToJsonForSC55} from './bin2json_sc55.js';
-import {binToJsonForUPcm, descrambleRomForUPcm} from './bin2json_upcm.js';
+import {binToJsonForUPcm} from './bin2json_upcm.js';
 import {binToJsonForCM32L} from './bin2json_cm32l.js';
 import {binToJsonForMU} from './bin2json_mu.js';
 import {binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonForMU50} from './bin2json_mu_old.js';
@@ -23,6 +23,7 @@ import {binToJsonForGMega} from './bin2json_gmega.js';
 import {binToJsonForGMegaLx} from './bin2json_gmegalx.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 import {binToJsonForSG01} from './bin2json_sg01.js';
+import {descrambleRomForUPcm} from './pcmdec_upcm.js';
 
 console.assert = assert;
 
@@ -36,11 +37,11 @@ const {values: options, positionals} = util.parseArgs({
 });
 
 const filePaths = positionals.map((filePath) => path.isAbsolute(filePath) ? filePath : path.resolve('.', filePath));
-const filePath = filePaths[0];
+const ctrlFilePath = filePaths[0];
 
 try {
 	if (options.bin) {
-		const buf = fs.readFileSync(filePath);
+		const buf = fs.readFileSync(ctrlFilePath);
 		const bytes = new Uint8Array(buf);
 
 		switch (options.mode) {
@@ -797,10 +798,10 @@ try {
 
 		case 'ns5r':
 			{
-				const {root, dir, name, ext} = path.parse(filePath);
+				const {root, dir, name, ext} = path.parse(ctrlFilePath);
 				const m = name.match(/^(X572)(.*)/ui);
 				if (!m) {
-					throw new Error(`Invalid file: ${filePath}`);
+					throw new Error(`Invalid file: ${ctrlFilePath}`);
 				}
 				const files = ['PROG', 'PCM', 'DEMO'].reduce((p, c) => {
 					if (c === m[2]) {
@@ -977,7 +978,7 @@ try {
 		case 'sk-500':
 		case 'jv-1010':
 			{
-				const {dir, name} = path.parse(filePath);
+				const {dir, name} = path.parse(ctrlFilePath);
 				const m = name.match(/^([^\d]*)(\d+)$/u);
 				if (!m) {
 					throw new Error(`Invalid file name: ${name}`);
@@ -997,10 +998,10 @@ try {
 		case 'mu1000':
 		case 'mu128':
 			{
-				const bytes = new Uint8Array(fs.readFileSync(filePath));
+				const bytes = new Uint8Array(fs.readFileSync(ctrlFilePath));
 				const view = new DataView(bytes.buffer);
 				if (view.getUint32(0) !== 0x4e5a656d) {
-					throw new Error(`Invalid file: ${filePath}`);
+					throw new Error(`Invalid file: ${ctrlFilePath}`);
 				}
 
 				view.setUint32(0, 0x4d546864);
@@ -1011,7 +1012,7 @@ try {
 
 		case 'ag-10':
 			{
-				const {dir} = path.parse(filePath);
+				const {dir} = path.parse(ctrlFilePath);
 				const fileNames = fs.readdirSync(dir).filter((e) => /^\d{3}.*?\.AG/ui.test(path.basename(e)));
 
 				(async () => {
