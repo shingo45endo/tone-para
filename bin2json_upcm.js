@@ -67,6 +67,8 @@ function makeSamples(bytes) {
 			sampleNo,
 			bytes: [...sampleBytes],
 			key:   sampleBytes[8],
+			isCard: (sampleBytes[2] & 0x08) !== 0,
+			bank:   (sampleBytes[2] & 0x30) >> 4,
 			addrBegin,
 			sampleLen: makeValue2ByteLE(sampleBytes.slice(3, 5)),
 			loopLen:   makeValue2ByteLE(sampleBytes.slice(5, 7)),
