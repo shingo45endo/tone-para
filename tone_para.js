@@ -302,6 +302,7 @@ try {
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
+		case 'sc-155':
 		case 'sc-55_v12':
 			{
 				const json = binToJsonForSC55(bytes, {
@@ -949,6 +950,7 @@ try {
 		case 'sc-55mk2':
 		case 'sd-35':
 		case 'sc-33':
+		case 'sc-155':
 		case 'sc-55_v20':
 		case 'sc-55_v12':
 		case 'sc-55_v10':
