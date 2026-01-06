@@ -212,15 +212,6 @@ try {
 					drumSets:   [0x038080, 0x03c940],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-					'XP-10_Power.mid':             [0x008000, 0x00fc87],
-					'XP-10_KaiStrutsHisStuff.mid': [0x06b400, 0x06fc56],
-					'XP-10_Mangolay.mid':          [0x070000, 0x0774b6],
-					'XP-10_Kaleidoscope.mid':      [0x0774b6, 0x07e02a],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
 			}
 			break;
 		case 'sc-55mk2':
@@ -243,16 +234,6 @@ try {
 					drumSets:   [0x038080, 0x03adf8],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-/*
-				Object.entries({
-					'SC-55mkII_MoonlightPicnic.mid': [0x040000, 0x045fda],
-					'SC-55mkII_LowFlying.mid':       [0x045fda, 0x049fd8],
-					'SC-55mkII_SuplexHold.mid':      [0x050000, 0x058756],
-					'SC-55mkII_Monopoly.mid':        [0x058756, 0x05f446],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
-*/
 			}
 			break;
 		case 'sd-35':
@@ -275,13 +256,6 @@ try {
 					drumSets:   [0x038080, 0x03bb9c],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-/*
-				Object.entries({
-					'SD-35_Leya\'sSong.mid': [0x00cebc, 0x00ea6e],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
-*/
 			}
 			break;
 		case 'sc-33':
@@ -304,13 +278,6 @@ try {
 					drumSets:   [0x038080, 0x03bb9c],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-/*
-				Object.entries({
-					'SC-33_WORMHole.mid': [0x009c8c, 0x00f67d],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
-*/
 			}
 			break;
 		case 'sc-55_v20':
@@ -333,14 +300,6 @@ try {
 					drumSets:   [0x038080, 0x03c028],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-/*
-				Object.entries({
-					'SC-55-v200_JazzLagoon.mid':  [0x009ad8, 0x00d70b],
-					'SC-55-v200_Leya\'sSong.mid': [0x00d70b, 0x00f2bd],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
-*/
 			}
 			break;
 		case 'sc-55_v12':
@@ -363,15 +322,6 @@ try {
 					drumSets:   [0x038080, 0x03c028],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-					'SC-55-v121_JazzLagoon.mid':  [0x0088ac, 0x00d174],
-					'SC-55-v121_Leya\'sSong.mid': [0x00d174, 0x00f37f],
-//					'SC-55-v120_JazzLagoon.mid':  [0x008894, 0x00d15c],
-//					'SC-55-v120_Leya\'sSong.mid': [0x00d15c, 0x00f367],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
 			}
 			break;
 		case 'sc-55_v10':
@@ -394,15 +344,6 @@ try {
 					drumSets:   [0x038080, 0x03c028],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-//					'SC-55-v110_JazzLagoon.mid':  [0x0087b4, 0x00d07c],
-//					'SC-55-v110_Leya\'sSong.mid': [0x00d07c, 0x00f287],
-					'SC-55-v100_JazzLagoon.mid':  [0x0084d8, 0x00cda0],
-					'SC-55-v100_Leya\'sSong.mid': [0x00cda0, 0x00efab],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
 			}
 			break;
 
@@ -828,13 +769,6 @@ try {
 					drumNoteParams: [0x013a8a, 0x01fede],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-					'NS5R_2000Fever.mid':  [0x000008, 0x011350],
-					'NS5R_MissionMan.mid': [0x011350, 0x01ddec],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, files.DEMO.slice(...range));
-				});
 			}
 			break;
 
@@ -855,13 +789,6 @@ try {
 //					drumSamples: [0x060b10, 0x061928],	// Not used
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-					'X5DR_We\'veGotDreams.mid': [0x000000, 0x00becd],
-					'X5DR_AroundTheWorld.mid':  [0x00bf00, 0x01fec6],
-				}).forEach(([name, region]) => {
-					fs.writeFileSync(name, bytes.slice(...region));
-				});
 			}
 			break;
 
@@ -878,12 +805,6 @@ try {
 					waves:       [0x037782, 0x038dc2],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-					'05RW_MadRobot.mid': [0x000400, 0x008a6e],
-				}).forEach(([name, region]) => {
-					fs.writeFileSync(name, bytes.slice(...region));
-				});
 			}
 			break;
 
@@ -946,16 +867,6 @@ try {
 					entries:        [0x041320, 0x0b33e0],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
-
-				Object.entries({
-					'SG01k_Mirage.mid':    [0x010016, 0x01b1f8],
-					'SG01k_Journey.mid':   [0x01b1f8, 0x026f43],
-					'SG01k_EbbTide.mid':   [0x026f43, 0x02f0f9],
-					'SG01k_Emergency.mid': [0x02f0f9, 0x03a0bc],
-					'SG01k_LeSoleil.mid':  [0x03a0bc, 0x03c77c],
-				}).forEach(([name, range]) => {
-					fs.writeFileSync(name, bytes.slice(...range));
-				});
 			}
 			break;
 
