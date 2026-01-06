@@ -202,7 +202,7 @@ function makeToneMaps(bytes) {
 
 	const toneMaps = [];
 	for (let prog = 0; prog < 128; prog++) {
-		for (let bankM = 0; bankM < 126; bankM++) {
+		for (let bankM = 0; bankM < 96; bankM++) {
 			const toneNo = tableTones[bankM][prog];
 			if (toneNo === 0xffff) {
 				continue;
@@ -217,7 +217,7 @@ function makeToneMaps(bytes) {
 			toneMaps.push(toneProg);
 		}
 	}
-	for (const bankM of [126, 127]) {
+	for (let bankM = 96; bankM < 128; bankM++) {
 		for (let prog = 0; prog < 128; prog++) {
 			const toneNo = tableTones[bankM][prog];
 			if (toneNo === 0xffff) {

@@ -214,6 +214,28 @@ try {
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}
 			break;
+		case 'mt-80s':
+			{
+				const json = binToJsonForSC55(bytes, {
+					tonesRanges: [
+						[0x040000, 0x04bd00],	// "Piano 1" - "Machine Gun"
+						[0x050000, 0x059120],	// "Lasergun" - "Open Triangl"
+					],
+					wavesRanges: [
+						[0x04bd00, 0x04dec0],	// "AT Piano" - "metro_k L"
+						[0x05bd00, 0x05c714],	// "TIMPANI&HIT B" - "808CG"
+					],
+					samplesRanges: [
+						[0x04dec0, 0x050000],
+						[0x05dec0, 0x05df00],
+					],
+					tableTones: [0x060000, 0x068000],
+					tableDrums: [0x068000, 0x068080],
+					drumSets:   [0x068080, 0x06b284],	// "STANDARD" - "DRUM V"
+				});
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
+			}
+			break;
 		case 'sc-55mk2':
 			{
 				const json = binToJsonForSC55(bytes, {
@@ -947,6 +969,7 @@ try {
 		case 'sc-88':
 		case 'pma-5':
 		case 'xp-10':
+		case 'mt-80s':
 		case 'sc-55mk2':
 		case 'sd-35':
 		case 'sc-33':
