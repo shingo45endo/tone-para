@@ -5,8 +5,7 @@ import process from 'node:process';
 import assert from 'node:assert';
 
 import {decodePcmForSc, descrambleRomForScPcm} from './pcmdec_sc.js';
-import {decodePcmForUPcm} from './pcmdec_upcm.js';
-import {descrambleRomForUPcm} from './bin2json_upcm.js';
+import {decodePcmForUPcm, descrambleRomForUPcm} from './pcmdec_upcm.js';
 
 console.assert = assert;
 
@@ -101,7 +100,7 @@ try {
 				}
 
 				const sampleNoStr = (sample.sampleNo).toString().padStart(4, '0');
-				const waveFileName = (options.instname) ? 
+				const waveFileName = (options.instname) ?
 					`${options.mode}_sample_${sampleNoStr}-${toFileNameChar(tones?.[0]?.name ?? 'NOINST')}-${toFileNameChar(waves?.[0]?.name ?? 'NOWAVE')}.wav` :
 					`${options.mode}_sample_${sampleNoStr}.wav`;
 
@@ -154,7 +153,7 @@ try {
 				}
 
 				const sampleNoStr = (sample.sampleNo).toString().padStart(4, '0');
-				const waveFileName = (options.instname) ? 
+				const waveFileName = (options.instname) ?
 					`${options.mode}_sample_${sampleNoStr}-${toFileNameChar(tones?.[0]?.name ?? 'NOTONE')}.wav` :
 					`${options.mode}_sample_${sampleNoStr}.wav`;
 
