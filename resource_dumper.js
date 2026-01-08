@@ -119,14 +119,101 @@ const lcdBitmapRanges = {
 	},
 };
 
+const muLcdBitmapRanges = {
+	'mu2000': {
+		'icon0.bmp':   [0x1bbbd0, 0x1bf670],
+		'icon1.bmp':   [0x1bf6f8, 0x1ccad8],
+		'icon2.bmp':   [0x1cd0c4, 0x1cd664],
+		'icon3.bmp':   [0x1cd676, 0x1cfd36],
+		'icon4.bmp':   [0x1d1024, 0x1d1d24],
+		'icon5.bmp':   [0x1d1dac, 0x1d224c],
+		'icon6.bmp':   [0x1d3b78, 0x1d3c18],
+		'icon7.bmp':   [0x1d3c5a, 0x1d3c7a],
+		'icon8.bmp':   [0x1d3eb8, 0x1d3ed8],
+		'icon9.bmp':   [0x1d3efa, 0x1d3f1a],
+		'icon10.bmp':  [0x1d3f3c, 0x1d3f5c],
+		'icon11.bmp':  [0x1d3f5c, 0x1d40fc],
+		'icon12.bmp':  [0x1d4fcc, 0x1d4fec],
+		'icon13.bmp':  [0x1d5244, 0x1d5264],
+		'icon14.bmp':  [0x1d52ca, 0x1d56ca],
+		'icon15.bmp':  [0x1d58d4, 0x1d6254],
+		'icon16.bmp':  [0x1d6298, 0x1d7098],
+		'icon17.bmp':  [0x1d70ba, 0x1d70da],
+		'icon18.bmp':  [0x1d7140, 0x1d7160],
+		'icon19.bmp':  [0x1d7260, 0x1d72a0],
+		'icon20.bmp':  [0x1d72e4, 0x1d75c4],
+		'icon21.bmp':  [0x1d765a, 0x1d7c5a],
+		'icon22.bmp':  [0x1d7cc0, 0x1d7ce0],
+		'icon23.bmp':  [0x1d7cf2, 0x1d7d12],
+		'icon24.bmp':  [0x1d7d36, 0x1d7f36],
+		'icon25.bmp':  [0x1d7f72, 0x1d7fb2],
+		'icon26.bmp':  [0x1d7fd4, 0x1d8094],
+		'icon27.bmp':  [0x1d860c, 0x1d8a0c],
+		'icon28.bmp':  [0x1d8b8c, 0x1d8d8c],
+		'icon29.bmp':  [0x1d8b8c, 0x1d8d8c],
+		'icon30.bmp':  [0x1d9044, 0x1d9244],
+		'icon31.bmp':  [0x1d9044, 0x1d9244],
+		'icon32.bmp':  [0x1d9376, 0x1d9576],
+		'icon33.bmp':  [0x1d9376, 0x1d9576],
+		'icon34.bmp':  [0x1d95e4, 0x1d9dc4],
+		'icon35.bmp':  [0x1d9e64, 0x1d9f44],
+		'icon36.bmp':  [0x1d9e64, 0x1d9f44],
+		'icon37.bmp':  [0x1d9fa8, 0x1da1a8],
+		'icon38.bmp':  [0x1da1ca, 0x1da3aa],
+		'icon39.bmp':  [0x1da3de, 0x1da53e],
+		'icon40.bmp':  [0x1da59c, 0x1da5dc],
+		'icon41.bmp':  [0x1da5fc, 0x1da8bc],
+		'icon42.bmp':  [0x1da8de, 0x1dacde],
+		'icon43.bmp':  [0x1dad48, 0x1db248],
+		'icon44.bmp':  [0x1db24e, 0x1db8ce],
+	},
+	'mu1000': {
+		'icon0.bmp':  [0x1416fc, 0x1453dc],
+		'icon1.bmp':  [0x145638, 0x145b18],
+		'icon2.bmp':  [0x145b2a, 0x145d2a],
+		'icon3.bmp':  [0x146b54, 0x147814],
+		'icon4.bmp':  [0x14789c, 0x1479bc],
+		'icon5.bmp':  [0x14907c, 0x14911c],
+		'icon6.bmp':  [0x14912e, 0x14914e],
+		'icon7.bmp':  [0x14938c, 0x1493ac],
+		'icon8.bmp':  [0x1493ce, 0x1493ee],
+		'icon9.bmp':  [0x1493f0, 0x1493ee],
+		'icon10.bmp': [0x149410, 0x149430],
+		'icon11.bmp': [0x149430, 0x1495d0],
+		'icon12.bmp': [0x149bc8, 0x149be8],
+		'icon13.bmp': [0x14a4a0, 0x14a4c0],
+		'icon14.bmp': [0x14a718, 0x14a738],
+		'icon15.bmp': [0x14a79e, 0x14ab9e],
+		'icon16.bmp': [0x14ad54, 0x14b1f4],
+	},
+	'mu128': {
+		'icon.bmp': [0x0dd454, 0x0e1c74],
+	},
+	'mu100': {
+		'icon.bmp': [0x04f134, 0x054a54],
+	},
+	'mu90': {
+		'icon.bmp': [0x0420fa, 0x04797a],
+	},
+	'mu80': {
+		'icon0.bmp': [0x05ede4, 0x05f0c4],
+		'icon1.bmp': [0x067de0, 0x069700],
+	},
+	'mu50': {
+		'icon0.bmp': [0x0268de, 0x028bbe],
+		'icon1.bmp': [0x031306, 0x032486],
+	},
+};
+
 try {
 	const buf = fs.readFileSync(filePaths[0]);
 	const bytes = new Uint8Array(buf);
 
 	const demoSongs = demoSongRanges[options.mode];
 	const lcdBitmaps = lcdBitmapRanges[options.mode];
+	const muLcdBitmaps = muLcdBitmapRanges[options.mode];
 
-	if (!demoSongs && !lcdBitmaps) {
+	if (!demoSongs && !lcdBitmaps && !muLcdBitmaps) {
 		console.error(`Invalid mode: ${options.mode}`);
 	}
 
@@ -143,6 +230,36 @@ try {
 				for (let y = 0; y < 16; y++) {
 					for (let x = 0; x < 16; x++) {
 						bitmaps.push(...((imageBytes[Math.trunc(x / 5) * 16 + y] & (1 << (4 - (x % 5)))) === 0) ? [0, 125, 249, 0] : [0, 28, 55, 0]);
+					}
+				}
+
+				const bmp = new Uint8Array(14 + 40 + bitmaps.length);
+				bmp.set(bitmaps, 14 + 40);
+
+				const view = new DataView(bmp.buffer);
+				view.setUint16(0, 0x424d);	// "BM"
+				view.setUint32(2, bmp.byteLength, true);	// bfSize
+				view.setUint32(10, 14 + 40, true);	// bfOffBits
+				view.setUint32(14, 40, true);	// biSize
+				view.setInt32(18, 16, true);	// biWidth
+				view.setInt32(22, -16, true);	// biHeight
+				view.setUint16(26, 1, true);	// biPlanes
+				view.setUint16(28, 32, true);	// biBitCount
+
+				const {name, ext} = path.parse(fileName);
+				const indexSuffix = `_${(i).toString().padStart(4, '0')}`;
+				fs.writeFileSync(path.join('resources', `${options.mode}_${name}${(a.length > 1) ? indexSuffix : ''}${ext}`), bmp);
+			});
+		});
+	}
+
+	if (muLcdBitmaps) {
+		Object.entries(muLcdBitmaps).forEach(([fileName, range]) => {
+			splitArrayByN(bytes.slice(...range), 32).forEach((imageBytes, i, a) => {
+				const bitmaps = [];
+				for (let y = 0; y < 16; y++) {
+					for (let x = 0; x < 16; x++) {
+						bitmaps.push(...((imageBytes[Math.trunc(x / 8) + y * 2] & (1 << (7 - (x % 8)))) === 0) ? [0, 195, 146, 0] : [0, 51, 38, 0]);
 					}
 				}
 
