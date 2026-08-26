@@ -45,6 +45,27 @@ try {
 		const bytes = new Uint8Array(buf);
 
 		switch (options.mode) {
+		case 'sc-8850':
+			{
+				const json = binToJsonForSC8820(bytes, {
+					tones:         [0x000100, 0x0a5100],
+					tones4:        [0x0a5100, 0x0b4500],
+					waves:         [0x0b4500, 0x0e25a4],
+					samples:       [0x0e25a4, 0x0fc4ce],
+					tableTones:    [0x0fc4ce, 0x109dce],
+					tableMaps:     [0x109dce, 0x109e4e],
+					tableBanks:    [0x109e4e, 0x10a3ce],
+					tableDrums2:   [0x10a3ce, 0x10a4ce],
+					tableDrumMaps: [0x10a4ce, 0x10a54e],
+					tableDrums:    [0x10a54e, 0x10a84e],
+					drumSets:      [0x10a84e, 0x12646e],
+					combis:        [0x12906e, 0x1294ee],
+					drumNoteNames: [0x15c398, 0x197998],
+				});
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
+			}
+			break;
+
 		case 'sc-8820':
 			{
 				const json = binToJsonForSC8820(bytes, {
