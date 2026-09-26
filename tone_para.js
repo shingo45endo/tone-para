@@ -936,7 +936,6 @@ try {
 			}
 			break;
 
-		case 'sc-8850':
 		case 'jv-1010':
 		case 'ag-10':
 			console.warn('Not supported.');
