@@ -36,7 +36,7 @@ function makeSamples(bytes) {
 			addrBegin,
 			sampleLen: makeValue2ByteLE(sampleBytes.slice(3, 5)),
 			loopLen:   makeValue2ByteLE(sampleBytes.slice(5, 7)),
-			loopMode:  (addr & 0xc0000) >> 22,
+			loopMode:  (addr & 0xc00000) >> 22,
 		};
 		samples.push(sample);
 	});

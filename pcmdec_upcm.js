@@ -35,51 +35,59 @@ export function descrambleRomForUPcm(bytes) {
 }
 
 export function decodePcmForUPcm(sample, pcmRomReader, sampleRate = 32000.0, loopSec = 1.0) {
-	const addrBegin = sample.addrBegin;
-	const loopBegin = sample.addrBegin + (sample.sampleLen - sample.loopLen);
-	const addrEnd = addrBegin + sample.sampleLen;
-	console.assert(addrEnd === loopBegin + sample.loopLen);
+	const bankBase = sample.addrBegin & ~0x3ffff;
+	const addrBegin = sample.addrBegin & 0x3ffff;
+	const endWord = (addrBegin + sample.sampleLen) >> 2;
+	const addrEnd = (endWord << 2) & 0x3ffff;
+	const addrLoop = ((endWord - (sample.loopLen >> 2)) << 2) & 0x3ffff;
+
+	const addrRepeat = (addrLoop === addrEnd) ? addrLoop : (addrLoop + 1) & 0x3ffff;
 	const needSampleNum = (sample.loopLen > 0) ? Math.trunc(sampleRate * loopSec) : 0;
 
 	const pcms = [];
+	let predictor = 0;
 
-	// Attack
-	for (let addr = addrBegin; addr < loopBegin; addr++) {
-		pcms.push(makeSample(addr));
-	}
+	// First pass, from the start to the end
+	pushSamples(addrBegin, addrEnd, 1);
 
 	// Loop
-	// TODO: Fix noise when applying loop.
 	let loopSampleNum = 0;
 	while (loopSampleNum < needSampleNum) {
 		switch (sample.loopMode) {
 		case 0:	// normal loop
-			for (let addr = loopBegin; addr <= addrEnd; addr++) {
-				pcms.push(makeSample(addr));
-				loopSampleNum++;
-			}
+			loopSampleNum += pushSamples(addrRepeat, addrEnd, 1);
 			break;
 		case 1: // no loop
+		case 3: // no loop
+			loopSampleNum = needSampleNum;
 			break;
 		case 2:	// ping-pong loop
-			for (let addr = loopBegin; addr < addrEnd; addr++) {
-				pcms.push(makeSample(addr));
-				loopSampleNum++;
-			}
-			for (let addr = addrEnd; addr > loopBegin; addr--) {
-				pcms.push(makeSample(addr));
-				loopSampleNum++;
-			}
+			loopSampleNum += pushSamples(addrEnd, addrRepeat, -1);
+			loopSampleNum += pushSamples(addrRepeat, addrEnd, 1);
 			break;
 		default:
 			console.assert(false);
+			break;
 		}
 	}
 
 	const wave = new Uint16Array(pcms);
 	return [makeRiffWaveHeader(wave.byteLength, sampleRate, 16), wave];
 
-	function getSample(addr) {
+	// Decodes the bytes from addrFrom to addrTo (both inclusive) and returns the number of samples.
+	function pushSamples(addrFrom, addrTo, step) {
+		let sampleNum = 0;
+		for (let addr = addrFrom; ; addr = (addr + step) & 0x3ffff) {
+			pcms.push(makeSample(addr));
+			sampleNum++;
+			if (addr === addrTo) {
+				return sampleNum;
+			}
+		}
+	}
+
+	// Each byte is a delta in sign-magnitude with a 3-bit exponent and a 4-bit mantissa.
+	function getDelta(addr) {
 		let dataByte = pcmRomReader(addr);
 		if (dataByte >= 0x80) {
 			dataByte -= 0x100;
@@ -87,12 +95,14 @@ export function decodePcmForUPcm(sample, pcmRomReader, sampleRate = 32000.0, loo
 		const sign = Math.sign(dataByte);
 		const value = Math.abs(dataByte) & 0x0f;
 		const shift = Math.abs(dataByte) >> 4;
-		const result = (shift === 0) ? value : (0x10 + value) << (shift + 1);
+		const result = (shift === 0) ? value : (0x10 + value) << (shift - 1);
 		return sign * result;
 	}
 
+	// The deltas are added up in a 12-bit accumulator, which wraps around.
 	function makeSample(addr) {
-		const value =  getSample((sample.bank << 20) | addr);
+		predictor = ((predictor + getDelta((sample.bank << 20) | bankBase | addr) + 0x800) & 0xfff) - 0x800;
+		const value = predictor * 16;
 		console.assert(-32768 <= value && value <= 32767);
 		return value;
 	}
