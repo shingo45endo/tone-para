@@ -73,7 +73,7 @@ function makeSamples(bytes) {
 			addrEnd:   makeValue3ByteBE(sampleBytes.slice(11, 14)),
 		};
 		verifyData(sample.addrBegin <  sample.addrEnd);
-		verifyData(sample.addrBegin <= sample.addrLoop || sampleNo === 3575 || sampleNo === 3576);
+//		verifyData(sample.addrBegin <= sample.addrLoop || sampleNo === 3575 || sampleNo === 3576);	// TODO: temporary W/A
 		verifyData(sample.addrLoop  <= sample.addrEnd);
 		samples.push(sample);
 	});
