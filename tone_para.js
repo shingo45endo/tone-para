@@ -473,6 +473,7 @@ try {
 					tableTonesXGBasic:          [0x2839d0, 0x283a50],
 					tableTonesXGNative:         [0x283a50, 0x283ad0],
 					tableTonesModelExcl:        [0x283ad0, 0x283b50],
+					tableDrumToneAddrs:         [0x283b50, 0x283cd4],
 					tableTonesGS:               [0x283d50, 0x283dd0],
 					drumParams:                 [0x283dd0, 0x28e64e],
 					tableDrumNotes:             [0x28e64e, 0x29224e],
@@ -514,6 +515,7 @@ try {
 					tableTonesXGBasic:          [0x1c7948, 0x1c79c8],
 					tableTonesXGNative:         [0x1c79c8, 0x1c7a48],
 					tableTonesModelExcl:        [0x1c7a48, 0x1c7ac8],
+					tableDrumToneAddrs:         [0x1c7ac8, 0x1c7c4c],
 					tableTonesGS:               [0x1c7cc8, 0x1c7d48],
 					drumParams:                 [0x1c7d48, 0x1d25c6],
 					tableDrumNotes:             [0x1d25c6, 0x1d61c6],
@@ -555,6 +557,7 @@ try {
 					tableTonesXGBasic:          [0x15c734, 0x15c7b4],
 					tableTonesXGNative:         [0x15c7b4, 0x15c834],
 					tableTonesModelExcl:        [0x15c834, 0x15c8b4],
+					tableDrumToneAddrs:         [0x15c8b4, 0x15ca2c],
 					tableTonesTG300B:           [0x15cab4, 0x15cb34],
 					drumParams:                 [0x15cb34, 0x166836],
 					tableDrumNotes:             [0x166836, 0x16a236],
@@ -612,6 +615,7 @@ try {
 					tableTonesModelExcl2:    [0x0cb318, 0x0cb398],	// Unknown table
 					tableTonesXGBasic3:      [0x0cb498, 0x0cb518],	// Unknown table
 					tableTonesTG300B:        [0x0cb518, 0x0cb598],
+					tableDrumToneAddrs:      [0x0cb598, 0x0cb710],
 					tones:                   [0x0cb710, 0x0f692e],
 					waves1:                  [0x0f692e, 0x0fccde],
 					tableWaveAddrs1:         [0x0fccde, 0x0fcf2a],
@@ -642,6 +646,7 @@ try {
 					tableTonesXG:            [0x09ba5e, 0x09bade],
 					tableTonesMsb:           [0x09bade, 0x09bb5e],
 					tableTonesTG300B:        [0x09bb5e, 0x09bbde],
+					tableDrumToneAddrs:      [0x09bbde, 0x09bc8e],
 					tones:                   [0x09bc8e, 0x0b36cc],
 					waves:                   [0x0b36cc, 0x0b9a7c],
 					tableWaveAddrs:          [0x0b9a7c, 0x0b9cc8],
@@ -692,6 +697,7 @@ try {
 					drumNoteNamesTG300B:     [0x02fc6c, 0x02ff6c],	// Only StandKit
 					drumNoteNameIndicesDOC:  [0x0304ab, 0x0304e9],
 					drumNoteNamesOthers:     [0x030542, 0x031106],
+					tableDrumToneAddrs:      [0x03b38e, 0x03b4ea],
 					tones:                   [0x04f000, 0x067f06],
 					tableToneAddrs:          [0x067f06, 0x06c606],
 					tableTonesTG300B:        [0x06c606, 0x06c686],

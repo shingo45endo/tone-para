@@ -18,7 +18,7 @@ export function binToJsonForMU(allBytes, memMap) {
 	json.tones = makeTones(allBytes.slice(...memMap.tones), json);
 
 	// Drum Sets
-	json.drumSets = makeDrumSets(allBytes, memMap);
+	json.drumSets = makeDrumSets(allBytes, memMap, json);
 
 	// Tone Map
 	const tableToneMap = makeTableOfToneMap(allBytes, memMap, json);
@@ -46,6 +46,24 @@ export function binToJsonForMU(allBytes, memMap) {
 	return json;
 }
 
+export function parseSampleRegBytesMU(bytes) {
+	console.assert(bytes?.length === 12);
+
+	// These 12 bytes are the values of the SWP30 registers for sample playback. The address points to the loop point.
+	const preLen  = makeValue3ByteBE(bytes.slice(1, 4));
+	const loopLen = makeValue3ByteBE(bytes.slice(5, 8));
+	const formatNo = bytes[8] >> 6;
+
+	return {
+		sampleLen: preLen + loopLen,
+		loopLen,
+		isLooped:      ((bytes[0] & 0x40) === 0),
+		isReverse:     ((bytes[4] & 0x80) !== 0),
+		bitsPerSample: [16, 12, 8, 8][formatNo],
+		isCompressed:  (formatNo === 3),
+	};
+}
+
 function makeWaves(allBytes, memMap) {
 	console.assert(allBytes?.length && memMap);
 
@@ -67,6 +85,8 @@ function makeWaves(allBytes, memMap) {
 				low:  (i > 0) ? a[i - 1][3] + 1 : 0,
 				high: waveBytes[3],
 				addr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+				key:  waveBytes[1],
+				...parseSampleRegBytesMU(waveBytes.slice(4, 16)),
 			};
 
 			verifyData(0 <= sampleSlot.low  && sampleSlot.low  < 128);
@@ -134,11 +154,14 @@ function makeTones(bytes, json) {
 	return tones;
 }
 
-function makeDrumSets(allBytes, memMap) {
-	console.assert(allBytes?.length && memMap);
+function makeDrumSets(allBytes, memMap, json) {
+	console.assert(allBytes?.length && memMap && Array.isArray(json?.tones));
 
 	const drumParamPackets = splitArrayByN(allBytes.slice(...memMap.drumParams), 42);
 	const drumSetsAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumParamAddrs), 4);
+
+	console.assert(isValidRange(memMap.tableDrumToneAddrs));
+	const drumToneOffsets = splitArrayByN(allBytes.slice(...memMap.tableDrumToneAddrs), 4).map((e) => makeValue4ByteBE(e) * 2);
 
 	const drumSets = [];
 	for (let drumSetNo = 0; drumSetNo < drumSetsAddrs.length; drumSetNo++) {
@@ -158,6 +181,24 @@ function makeDrumSets(allBytes, memMap) {
 				bytes: [...drumParamPackets[index]],
 			};
 			verifyData(note.bytes[8] === 0 && note.bytes[16] === 64 && note.bytes[17] === 64 && note.bytes[18] === 12 && note.bytes[19] === 54);
+
+			// A drum note plays a voice, or plays its own sample.
+			const drumToneIndex = makeValue2ByteBE(note.bytes.slice(24, 26));
+			if (drumToneIndex !== 0xffff) {
+				verifyData(drumToneIndex < drumToneOffsets.length);
+				const tones = json.tones.filter((tone) => tone._offset === drumToneOffsets[drumToneIndex]);
+				verifyData(tones.length === 1);
+				note.toneNo = tones[0].toneNo;
+				note.toneRef = {
+					$ref: `#/tones/${tones[0].toneNo}`,
+				};
+			} else {
+				note.sample = {
+					addr: makeValue3ByteBE(note.bytes.slice(39, 42)),
+					key:  note.bytes[26],
+					...parseSampleRegBytesMU(note.bytes.slice(30, 42)),
+				};
+			}
 			notes[noteNo] = note;
 		}
 

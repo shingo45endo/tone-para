@@ -1,5 +1,6 @@
 import {splitArrayByN, removePrivateProp, addNamesFromRefs, verifyData, isValidRange, makeValue2ByteBE, makeValue3ByteBE, makeValue4ByteBE} from './bin2json_common.js';
 import {waveNamesMU} from './mu_waves.js';
+import {parseSampleRegBytesMU} from './bin2json_mu.js';
 
 function convertVoicePacketForMU90AndMU100(bytes) {
 	return [
@@ -172,6 +173,65 @@ function convertVoicePacketForMU80(bytes) {
 	];
 }
 
+// For SWP00 (MU50): The address is in bytes. The format bits are the same as SWP30.
+function makeSampleForMU50(key, preLen, loopLen, formatByte) {
+	const formatNo = formatByte >> 6;
+	return {
+		key,
+		sampleLen: preLen + loopLen,
+		loopLen,
+		isLooped:      (loopLen > 0),
+		bitsPerSample: [16, 12, 8, 8][formatNo],
+		isCompressed:  (formatNo === 3),
+	};
+}
+
+// For SWP20 (MU80): The address is in 16-bit units. The meaning of the format 0xc0 is unknown. Bit 0 of the format byte is bit 16 of the loop length.
+function makeSampleForMU80(key, preLen, loopLenLow, formatByte) {
+	const loopLen = ((formatByte & 0x01) << 16) | loopLenLow;
+	const format = {
+		0x00: {
+			bitsPerSample: 8,
+			isCompressed: true,
+		},
+		0x80: {
+			bitsPerSample: 16,
+			isCompressed: false,
+		},
+	}[formatByte & 0xc0];
+	return {
+		key,
+		sampleLen: preLen + loopLen,
+		loopLen,
+		isLooped: (loopLen > 0),
+		...format,
+	};
+}
+
+function makeDrumToneOffsetGetterByTable(indexPos, entrySize, toOffset) {
+	// Makes a function that returns the offset of the voice for a drum note, or null if the drum note plays its own sample.
+	return (allBytes, memMap) => {
+		console.assert(isValidRange(memMap.tableDrumToneAddrs));
+		const offsets = splitArrayByN(allBytes.slice(...memMap.tableDrumToneAddrs), entrySize).map((e) => toOffset(e, memMap));
+		return (bytes) => {
+			const index = makeValue2ByteBE(bytes.slice(indexPos, indexPos + 2));
+			if (index === 0xffff) {
+				return null;
+			}
+			verifyData(index < offsets.length);
+			return offsets[index];
+		};
+	};
+}
+
+function parseDrumSampleForMU90AndMU100(bytes) {
+	return {
+		addr: makeValue3ByteBE(bytes.slice(39, 42)),
+		key:  bytes[26],
+		...parseSampleRegBytesMU(bytes.slice(30, 42)),
+	};
+}
+
 function convertCommonBytesForMU80OrLater(bytes) {
 	const commonBytes = [...bytes];
 	commonBytes[0] = {0: 0b01, 1: 0b11}[bytes[0]];
@@ -190,7 +250,11 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 			low: null,
 			high: waveBytes[3],
 			addr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+			key:  waveBytes[1],
+			...parseSampleRegBytesMU(waveBytes.slice(4, 16)),
 		}),
+		parseDrumSample: parseDrumSampleForMU90AndMU100,
+		makeDrumToneOffsetGetter: makeDrumToneOffsetGetterByTable(24, 4, (bytes) => makeValue4ByteBE(bytes)),
 		wavePacketSize: 16,
 		voicePacketSize: 70,
 		drumParamPacketSize: 42,
@@ -260,7 +324,11 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 			low: null,
 			high: waveBytes[3],
 			addr: makeValue3ByteBE(waveBytes.slice(13, 16)),
+			key:  waveBytes[1],
+			...parseSampleRegBytesMU(waveBytes.slice(4, 16)),
 		}),
+		parseDrumSample: parseDrumSampleForMU90AndMU100,
+		makeDrumToneOffsetGetter: makeDrumToneOffsetGetterByTable(24, 2, (bytes) => makeValue2ByteBE(bytes) * 2),
 		wavePacketSize: 16,
 		voicePacketSize: 70,
 		drumParamPacketSize: 42,
@@ -318,7 +386,17 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 			low: null,
 			high: (waveBytes[13] !== 0xff) ? waveBytes[13] : 127,
 			addr: makeValue3ByteBE(waveBytes.slice(8, 11)) & 0x3fffff,
+			...makeSampleForMU80(waveBytes[1], makeValue2ByteBE(waveBytes.slice(3, 5)), makeValue2ByteBE(waveBytes.slice(6, 8)), waveBytes[5]),
 		}),
+		parseDrumSample: (bytes) => ({
+			addr: makeValue3ByteBE(bytes.slice(24, 27)) & 0x3fffff,
+			...makeSampleForMU80(bytes[18], makeValue2ByteBE(bytes.slice(19, 21)), makeValue2ByteBE(bytes.slice(22, 24)), bytes[21]),
+		}),
+		makeDrumToneOffsetGetter: () => (bytes) => {
+			// MU80 has no table. The drum note has the offset of the voice.
+			const value = makeValue2ByteBE(bytes.slice(16, 18));
+			return (value !== 0) ? value * 2 : null;
+		},
 		wavePacketSize: 14,
 		voicePacketSize: 68,
 		drumParamPacketSize: 30,
@@ -340,7 +418,13 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 			low: waveBytes[14],
 			high: (waveBytes[15] !== 0xff) ? waveBytes[15] : 127,
 			addr: makeValue3ByteBE(waveBytes.slice(9, 12)),
+			...makeSampleForMU50(waveBytes[1], makeValue3ByteBE(waveBytes.slice(3, 6)), makeValue3ByteBE(waveBytes.slice(6, 9)), waveBytes[12]),
 		}),
+		parseDrumSample: (bytes) => ({
+			addr: makeValue3ByteBE(bytes.slice(24, 27)),
+			...makeSampleForMU50(bytes[18], makeValue2ByteBE(bytes.slice(19, 21)), makeValue3ByteBE(bytes.slice(21, 24)), bytes[27]),
+		}),
+		makeDrumToneOffsetGetter: makeDrumToneOffsetGetterByTable(16, 4, (bytes, memMap) => makeValue4ByteBE(bytes) - memMap.tones[0]),	// The table has absolute addresses.
 		wavePacketSize: 16,
 		voicePacketSize: 80,
 		drumParamPacketSize: 30,
@@ -365,7 +449,7 @@ export const [binToJsonForMU100, binToJsonForMU90, binToJsonForMU80, binToJsonFo
 		json.tones = makeTones(allBytes.slice(...memMap.tones), props, json);
 
 		// Drum Sets
-		json.drumSets = makeDrumSets(allBytes, memMap, props);
+		json.drumSets = makeDrumSets(allBytes, memMap, props, json);
 
 		// Tone Map
 		const tableToneMap = makeTableOfToneMap(allBytes, memMap, json, props.addrSize);
@@ -493,11 +577,13 @@ function makeTones(bytes, props, json) {
 	}
 }
 
-function makeDrumSets(allBytes, memMap, props) {
-	console.assert(allBytes?.length && memMap && props);
+function makeDrumSets(allBytes, memMap, props, json) {
+	console.assert(allBytes?.length && memMap && props && Array.isArray(json?.tones));
 
 	console.assert(isValidRange(memMap.drumParams));
 	const drumParamPackets = splitArrayByN(allBytes.slice(...memMap.drumParams), props.drumParamPacketSize);
+
+	const getDrumToneOffset = props.makeDrumToneOffsetGetter(allBytes, memMap);
 
 	console.assert(isValidRange(memMap.tableDrumNotes));
 	const tableDrumNoteAddrs = splitArrayByN(allBytes.slice(...memMap.tableDrumNotes), 256).map((bytes) => splitArrayByN(bytes, 2).map((e) => makeValue2ByteBE(e)));
@@ -516,6 +602,19 @@ function makeDrumSets(allBytes, memMap, props) {
 				bytes: [...drumNoteParams[noteNo]],
 				_index: drumParamIndices[drumSetNo][noteNo],
 			};
+
+			// A drum note plays a voice, or plays its own sample.
+			const drumToneOffset = getDrumToneOffset(note.bytes);
+			if (drumToneOffset !== null) {
+				const tones = json.tones.filter((tone) => tone._offset === drumToneOffset);
+				verifyData(tones.length === 1);
+				note.toneNo = tones[0].toneNo;
+				note.toneRef = {
+					$ref: `#/tones/${tones[0].toneNo}`,
+				};
+			} else {
+				note.sample = props.parseDrumSample(note.bytes);
+			}
 			notes[noteNo] = note;
 		}
 
