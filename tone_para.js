@@ -858,7 +858,10 @@ try {
 					drumSamples: [0x050bc0, 0x051e3a],
 					samples:     [0x051e3a, 0x05f02c],
 					waves:       [0x05f02c, 0x060b0c],
-//					drumSamples: [0x060b10, 0x061928],	// Not used
+					// The firmware can use the alternate tables below instead of the 3 tables above. They are not output.
+//					drumSamples: [0x060b10, 0x061928],
+//					samples:     [0x061928, 0x06c7b2],
+//					waves:       [0x06c7b2, 0x06ddf2],
 				});
 				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
 			}

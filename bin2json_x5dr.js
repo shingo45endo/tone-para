@@ -116,6 +116,7 @@ function makeWaves(bytes, json) {
 		const wave = {
 			waveNo,
 			name: String.fromCharCode(...waveBytes.slice(6, 16)),
+			bytes: [...waveBytes],
 			sampleSlots,
 		};
 		verifyData(/^[\x20-\x7f]*$/u.test(wave.name));
