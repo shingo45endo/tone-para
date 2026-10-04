@@ -83,8 +83,9 @@ function makeWaves(allBytes, wavesRanges) {
 			const sampleNo = sampleNos[i];
 			const sample = {
 				low: (i > 0) ? notes[i - 1] + 1 : 0,
-				high: notes[i],
-				sampleNo,
+				// Some waves have 128 in the last slot. Keys above 127 do not exist.
+				high: Math.min(notes[i], 0x7f),
+				sampleNo: ((sampleNo & 0x8000) === 0) ? sampleNo : sampleNo - 0x10000,
 			};
 			if (sample.sampleNo >= 0) {
 				Object.assign(sample, {
