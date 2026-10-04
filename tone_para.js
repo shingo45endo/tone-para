@@ -909,10 +909,11 @@ try {
 			}
 			break;
 
-		case 'gmega-lx':	// TODO: WIP
+		case 'gmega-lx':
 			{
 				const json = binToJsonForGMegaLx(bytes, {
 					toneNames:       [0x008653, 0x008b8b],
+					tableSlotNos:    [0x0097ab, 0x0098ab],
 					tableDrumNotes:  [0x009bab, 0x009f2b],
 					tableToneAddrs:  [0x018000, 0x018140],
 					drumToneParams:  [0x01e46a, 0x01efea],

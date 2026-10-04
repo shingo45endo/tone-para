@@ -169,13 +169,39 @@ function makeTones(allBytes, memMap) {
 	const tableToneAddrs = splitArrayByN(allBytes.slice(...memMap.tableToneAddrs), 2).map((e) => makeValue2ByteLE(e));
 	console.assert(tableToneAddrs.length === 160);
 
+	// The slots are not in each tone. The firmware gets the slot number of a key from this table.
+	// The index is (bit 7 of the first byte | key) as a signed value, so the first half is for bit 7 = 1.
+	console.assert(isValidRange(memMap.tableSlotNos));
+	const tableSlotNos = [...allBytes.slice(...memMap.tableSlotNos)];
+	console.assert(tableSlotNos.length === 256);
+	const slotTables = [tableSlotNos.slice(128, 256), tableSlotNos.slice(0, 128)].map((slotNos) => [...Array(Math.max(...slotNos) + 1).keys()].map((slotNo) => ({
+		low:  slotNos.indexOf(slotNo),
+		high: slotNos.lastIndexOf(slotNo),
+	})));
+
 	const tones = [];
 	for (let toneNo = 0; toneNo < tableToneAddrs.length; toneNo++) {
 		const addr = 0x10000 + tableToneAddrs[toneNo];
+		const headerBytes = allBytes.slice(addr, addr + 12);
+		const slots = slotTables[((headerBytes[0] & 0x80) !== 0) ? 1 : 0];
+
+		// Each slot has an 11-byte block for each of the 2 voices.
+		const voices = [0, 1].map((voiceIndex) => ({
+			bytes: [...headerBytes.slice(6 * voiceIndex, 6 * voiceIndex + 6)],
+			sampleSlots: slots.map(({low, high}, slotNo) => {
+				const slotAddr = addr + 12 + 22 * slotNo + 11 * voiceIndex;
+				return {
+					low,
+					high,
+					bytes: [...allBytes.slice(slotAddr, slotAddr + 11)],
+				};
+			}),
+		}));
+
 		const tone = {
 			toneNo,
 			name: toneNames[toneNo],
-			bytes: [...allBytes.slice(addr, addr + 12)],	// TODO: Confirm.
+			voices,
 		};
 		tones.push(tone);
 	}
