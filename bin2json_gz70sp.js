@@ -345,6 +345,7 @@ function makeSamples(bytes) {
 
 		const sample = {
 			sampleNo,
+			bytes:     [...sampleBytes],
 			level:     sampleBytes[14],
 			exponent:  sampleBytes[15],
 			pitch:     view.getInt16(12, true),
@@ -387,6 +388,7 @@ function makeTones(allBytes, memMap) {
 			const sampleBase = view.getUint16(2, true) & 0x0fff;
 			const sampleNos = tableSampleOffsets[sampleTableNo].map((e) => sampleBase + e);
 			const voice = {
+				bytes:          [...voiceBytes],
 				pitchKeyFollow: (voiceBytes[3] & 0x70) >> 4,
 				pitchTune:      view.getInt16(4, true),
 				panpot:         view.getInt8(11),
