@@ -23,6 +23,7 @@ import {binToJsonForGMega} from './bin2json_gmega.js';
 import {binToJsonForGMegaLx} from './bin2json_gmegalx.js';
 import {binToJsonForGZ70SP} from './bin2json_gz70sp.js';
 import {binToJsonForSG01} from './bin2json_sg01.js';
+import {binToJsonForBH1000} from './bin2json_bh1000.js';
 import {descrambleRomForUPcm} from './pcmdec_upcm.js';
 
 console.assert = assert;
@@ -946,6 +947,37 @@ try {
 			}
 			break;
 
+		case 'bh-1000':	// Suzuki BH-1000 (128 KB) and Nihon Eniac BH-1000 (256 KB)
+			{
+				const memMap = {
+					0x020000: {
+						tones:          [0x000008, 0x006e48],
+						tableBankAddrs: [0x007000, 0x007100],
+						drumSetNames:   [0x00868d, 0x0086dd],
+						tableDrumProgs: [0x009851, 0x00985b],
+						tableWaves:     [0x018000, 0x018352],
+						tableDrums:     [0x0127f8, 0x012878],
+						drumSets:       [0x012878, 0x012e3c],
+					},
+					0x040000: {
+						tableBankAddrs: [0x000e40, 0x000f40],
+						drumSetNames:   [0x01108e, 0x0110de],
+						tableDrumProgs: [0x012434, 0x01243e],
+						tableWaves:     [0x038e40, 0x039192],
+						tableDrums:     [0x016317, 0x016397],
+						drumSets:       [0x016397, 0x01695b],
+						tones:          [0x030e48, 0x037c88],
+					},
+				}[bytes.length];
+				if (!memMap) {
+					console.error(`Invalid file size: ${bytes.length}`);
+					break;
+				}
+				const json = binToJsonForBH1000(bytes, memMap);
+				fs.writeFileSync(`${options.mode}.json`, myStringify(json));
+			}
+			break;
+
 		case 'jv-1010':
 		case 'ag-10':
 			console.warn('Not supported.');
@@ -1045,6 +1077,7 @@ try {
 		case 'gmega-lx':
 		case 'gz-70sp':
 		case 'sg01k':
+		case 'bh-1000':
 			console.warn('Not supported.');
 			break;
 

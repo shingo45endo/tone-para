@@ -88,7 +88,7 @@ const demoSongRanges = {
 		'LeSoleil.mid':  [0x03a0bc, 0x03c77c],
 	},
 
-	'gm-1000': {
+	'bh-1000': {
 		'NileStone.mid': [0x020000, 0x029170],
 	},
 };
