@@ -27,9 +27,9 @@ const demoSongRanges = {
 	},
 
 	'sc-55mk2': {
-		'MoonlightPicnic.mid.bin': [0x040000, 0x045fda],
+		'MoonlightPicnic.mid.bin': [0x040000, 0x045fd9],
 		'LowFlying.mid.bin':       [0x045fda, 0x049fd8],
-		'SuplexHold.mid.bin':      [0x050000, 0x058756],
+		'SuplexHold.mid.bin':      [0x050000, 0x058755],
 		'Monopoly.mid.bin':        [0x058756, 0x05f446],
 	},
 
@@ -42,7 +42,7 @@ const demoSongRanges = {
 	},
 
 	'sc-155': {
-		'wIzArD.mid.bin': [0x00a79a, 0x00fb52],
+		'wIzArD.mid.bin': [0x00a79a, 0x00fb55],
 	},
 
 	'sc-55_v200': {
