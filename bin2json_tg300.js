@@ -16,7 +16,7 @@ export function binToJsonForTG300(allBytes, memMap) {
 	json.tones = makeTones(allBytes.slice(...memMap.tones));
 
 	// Drum Sets
-	json.drumSets = makeDrumSets(allBytes, memMap);
+	json.drumSets = makeDrumSets(allBytes, memMap, json);
 
 	// Tone Map
 	const tableToneMap = makeTableOfToneMap(allBytes, memMap, json);
@@ -129,8 +129,8 @@ function makeTones(bytes) {
 	return tones;
 }
 
-function makeDrumSets(allBytes, memMap) {
-	console.assert(allBytes?.length && memMap);
+function makeDrumSets(allBytes, memMap, json) {
+	console.assert(allBytes?.length && memMap && Array.isArray(json.tones));
 
 	console.assert(isValidRange(memMap.drumParams));
 	const drumParamPackets = splitArrayByN(allBytes.slice(...memMap.drumParams), 28);
@@ -157,6 +157,17 @@ function makeDrumSets(allBytes, memMap) {
 				_index: drumParamIndices[drumSetNo][noteNo],
 			};
 			verifyData(note.bytes[7] === 0x00 && note.bytes[15] === 0x00);
+
+			// Bytes 16-17 are the offset of the tone record to play. 0 means that the note plays its own sample.
+			const toneOffset = makeValue2ByteBE(note.bytes.slice(16, 18));
+			if (toneOffset !== 0x0000) {
+				const tone = json.tones.find((e) => e._offset === toneOffset);
+				verifyData(tone);
+				note.toneNo = tone.toneNo;
+				note.toneRef = {
+					$ref: `#/tones/${tone.toneNo}`,
+				};
+			}
 			notes[noteNo] = note;
 		}
 
