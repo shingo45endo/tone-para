@@ -113,15 +113,15 @@ function makeRiffWaveHeader(dataSize, samplesPerSec, bitsPerSample) {
 	const view = new DataView(header);
 
 	view.setUint32(0, 0x52494646);	// "RIFF"
-	view.setUint32(4, 32 + dataSize, true);
+	view.setUint32(4, 36 + dataSize, true);
 	view.setUint32(8, 0x57415645);	// "WAVE"
 	view.setUint32(12, 0x666D7420);	// "fmt "
 	view.setUint32(16, 16, true);
 	view.setUint16(20, 1, true);	// wFormatTag
 	view.setUint16(22, 1, true);	// wChannels
 	view.setUint32(24, samplesPerSec, true);	// dwSamplesPerSec
-	view.setUint32(28, dataSize * samplesPerSec / 8, true);	// dwAvgBytesPerSec
-	view.setUint16(32, samplesPerSec / 8, true);	// wBlockAlign
+	view.setUint32(28, samplesPerSec * bitsPerSample / 8, true);	// dwAvgBytesPerSec
+	view.setUint16(32, bitsPerSample / 8, true);	// wBlockAlign
 	view.setUint16(34, bitsPerSample, true);	// wBitsPerSample
 	view.setUint32(36, 0x64617461); // "data"
 	view.setUint32(40, dataSize, true);
