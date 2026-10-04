@@ -9,7 +9,7 @@ import {splitArrayByN} from './bin2json_common.js';
 console.assert = assert;
 
 const {values: options, positionals} = util.parseArgs({
-	args: process?.args ?? globalThis.Deno?.args,
+	args: process?.argv.slice(2) ?? globalThis.Deno?.args,
 	allowPositionals: true,
 	options: {
 		mode: {type: 'string'},
