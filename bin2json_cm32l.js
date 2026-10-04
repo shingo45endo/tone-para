@@ -318,9 +318,11 @@ function makeTones(allBytes, tonesRanges) {
 	let index = 0;
 	let toneNo = 0;
 	while (index < regionBytes.length) {
-		const numVoices = [0, 1,  , 2,  ,  ,  , 3,  ,  ,  ,  ,  ,  ,  , 4][regionBytes[index + 0x0c]];
+		// Only the used partials are stored, so the partial mute bits must be contiguous from bit 0.
+		const partialMuteBits = regionBytes[index + 0x0c];
+		verifyData([0x00, 0x01, 0x03, 0x07, 0x0f].includes(partialMuteBits));
+		const numVoices = Math.log2(partialMuteBits + 1);
 //		const numVoices = [0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4][regionBytes[index + 0x0c]];
-		verifyData(0 <= numVoices && numVoices <= 4);
 		const size = 14 + 58 * numVoices;
 		const toneBytes = regionBytes.slice(index, index + size);
 		const commonBytes = toneBytes.slice(0, 14);
