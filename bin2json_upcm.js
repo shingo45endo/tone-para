@@ -13,7 +13,7 @@ export function binToJsonForUPcm(allBytes, memMap) {
 	json.samples = makeSamples(allBytes.slice(...memMap.samples));
 
 	// Tones
-	console.assert(Array.isArray(memMap.tones));
+	console.assert(isValidRange(memMap.tones));
 	json.tones = makeTones(allBytes.slice(...memMap.tones));
 
 	return json;
